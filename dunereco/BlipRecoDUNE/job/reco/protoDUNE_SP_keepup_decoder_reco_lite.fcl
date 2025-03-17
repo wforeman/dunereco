@@ -1,0 +1,34 @@
+#include "protoDUNE_SP_keepup_decoder_reco.fcl"
+
+physics.decode: [ @sequence::protoDUNE_notpcdecoding,
+                  @sequence::protoDUNE_reco_data_lite
+                ]
+
+physics.filters.nhitsfilter.HitLimit: 30000 # default 40000
+#physics.filters.nhitsfilter.ScaleThresholdForReadoutWindow: false
+#physics.filters.nhitsfilter.LimitPerTPC: false
+outputs.out1.SelectEvents: [ decode ]
+
+outputs.out1.fileName: "%ifb_%tc_reco.root"
+outputs.out1.outputCommands: [
+    "keep *"
+    ,"drop artdaq::Fragments_*_*TPC_*"
+    ,"drop artdaq::Fragments_*_*FELIX_*"
+    ,"drop raw::RawDigit*_*_*_*"
+    ,"drop recob::Wires_caldata_dataprep_*"
+    ,"drop *_wclsdatasp_wiener_*"
+    ,"drop *_reco3d_noreg_*"
+    ,"drop *_reco3d_pre_*"
+    # new additions:
+    ,"drop *_gaushit_*_*"
+    ,"drop *_reco3d_*_*"
+    ,"drop recob::Wires_*_*_*"
+    ,"drop *_emtrkmichelid_*_*"
+    ,"drop *_pandora_*_*"
+    #,"drop *_pandora2*_*_*"
+    ,"drop *_daq_*_*"
+    ,"drop *_crtrawdecoder_*_*"
+    ,"drop recob::Wirerecob::Hitvoidart::Assns_*_*_*"
+    ,"drop recob::Hitrecob::SpacePointvoidart::Assns_*_*_*"
+    ,"drop raw::OpDetWaveforms_*_*_*"
+    ]

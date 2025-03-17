@@ -94,7 +94,7 @@ namespace blip {
     std::vector<blip::Blip>         blips;  
     std::vector<blip::TrueBlip>     trueblips;
     std::vector<blip::ParticleInfo> pinfo;
-    
+
     float   ModBoxRecomb(float,float);
     float   dQdx_to_dEdx(float,float);
     float   Q_to_E(float,float);
@@ -160,6 +160,10 @@ namespace blip {
     std::vector<float>  fMaxHitGOF;
     std::vector<float>  fMinHitRatio;
     std::vector<float>  fMaxHitRatio;
+    
+    //std::vector<float>  fMaxHitADCDiffFrac;
+
+
     int                 fMaxHitMult;
     float               fHitClustWidthFact;
     int                 fHitClustWireRange;

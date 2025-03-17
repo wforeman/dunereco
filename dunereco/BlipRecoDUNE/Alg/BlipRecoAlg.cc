@@ -68,6 +68,7 @@ namespace blip {
             const double dir((tpcgeom.DriftDirection() == geo::kNegX) ? +1.0 : -1.0);
             float x_ticks_coefficient = kDriftVelocity*kTickPeriod;
             float goofy_offset = -xyz.X() / (dir * x_ticks_coefficient);
+            std::cout<<"  goofy offset "<<goofy_offset<<"\n";
             std::cout<<"  Offset after geometric correction: "<<offset - goofy_offset<<"\n";
             kXTicksOffsets[cstat][tpc][pl] = offset - goofy_offset;
           
@@ -77,7 +78,9 @@ namespace blip {
           }
           
           // additional ad-hoc corrections supplied by user
+          std::cout<<"Applying custom time offset "<<cstat<<" "<<tpc<<" "<<pl<<": "<<fTimeOffset[pl]<<"\n";
           kXTicksOffsets[cstat][tpc][pl] += fTimeOffset[pl];
+          std::cout<<"Final: "<<kXTicksOffsets[cstat][tpc][pl]<<"\n";
         }
       }
     }
@@ -227,7 +230,9 @@ namespace blip {
     fMinHitRatio        = pset.get<std::vector<float>>  ("MinHitRatio",     {-99e9,-99e9,-99e9});
     fMaxHitGOF          = pset.get<std::vector<float>>  ("MaxHitGOF",       { 99e9, 99e9, 99e9});
     fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",       {-99e9,-99e9,-99e9});
-    
+   
+    //fMaxHitADCDiffFac   = pset.get<std::vector<int>>    ("MaxHitADCDiffFac",{1,1,1});
+
     fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact", 5.0);
     fHitClustWireRange  = pset.get<int>           ("HitClustWireRange", 1);
     fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster", 10);
@@ -262,7 +267,7 @@ namespace blip {
     fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
     
-    fSaveTree           = pset.get<bool>          ("SaveTree",            true);
+    fSaveTree           = pset.get<bool>          ("SaveTree",            false);
 
   }
 
@@ -278,8 +283,8 @@ namespace blip {
   void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
   
     std::cout<<"\n"
-    <<"=========== BlipRecoAlg =========================\n"
-    <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    <<"--------------------------------\n"
+    <<"BlipRecoAlg: run "<<evt.id().run()<<", evt "<<evt.id().event()<<"\n";
   
     //=======================================
     // Reset things
@@ -290,7 +295,7 @@ namespace blip {
     pinfo.clear();
     trueblips.clear();
     EvtBadChanCount = 0;
-  
+
     //=======================================
     // Get data products for this event
     //========================================
@@ -327,39 +332,56 @@ namespace blip {
     // -- hits (from input module, usually track-masked subset of gaushit)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
-    if (evt.getByLabel(fHitProducer,hitHandle))
-      art::fill_ptr_vector(hitlist, hitHandle);
+    try {
+      if (evt.getByLabel(fHitProducer,hitHandle))
+      //art::Handle< std::vector<recob::Hit>> hitHandle = evt.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
+        art::fill_ptr_vector(hitlist, hitHandle);
+    } catch (...) {
+    }
+    
+    if( !hitlist.size() ) {
+      std::cout<<"No hits found in this event! No use continuing...\n";
+      return;
+    } 
 
     // -- hits (from gaushit), these are used in truth-matching of hits
-    art::Handle< std::vector<recob::Hit> > hitHandleGH;
-    std::vector<art::Ptr<recob::Hit> > hitlistGH;
-    if (evt.getByLabel("gaushit",hitHandleGH))
-      art::fill_ptr_vector(hitlistGH, hitHandleGH);
+    //art::Handle< std::vector<recob::Hit> > hitHandleGH;
+    //std::vector<art::Ptr<recob::Hit> > hitlistGH;
+    //if (evt.getByLabel("gaushit",hitHandleGH))
+    //  art::fill_ptr_vector(hitlistGH, hitHandleGH);
 
     // -- tracks
     art::Handle< std::vector<recob::Track> > tracklistHandle;
     std::vector<art::Ptr<recob::Track> > tracklist;
-    if (evt.getByLabel(fTrkProducer,tracklistHandle))
-      art::fill_ptr_vector(tracklist, tracklistHandle);
-  
+    try {
+      if (evt.getByLabel(fTrkProducer,tracklistHandle))
+        art::fill_ptr_vector(tracklist, tracklistHandle);
+    } catch (...) {
+    }
+
     // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
-    art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
-   
+    //art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
+    
+
     // -- backtracker
     art::ServiceHandle<cheat::BackTrackerService> btService;
 
     std::cout
     <<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n"
     <<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n"
-    <<"Found "<<plist.size()<<" MC particles from "<<fGeantProducer<<"\n"
-    <<"Found "<<sedlist.size()<<" SimEnergyDeposits from "<<fSimDepProducer<<"\n"
-    <<"Found "<<simchanlist.size()<<" SimChannels from "<<fSimChanProducer<<"\n";
-  
+    //<<"Found "<<plist.size()<<" MC particles from "<<fGeantProducer<<"\n"
+    //<<"Found "<<sedlist.size()<<" SimEnergyDeposits from "<<fSimDepProducer<<"\n"
+    //<<"Found "<<simchanlist.size()<<" SimChannels from "<<fSimChanProducer<<"\n"
+    ;
+    if( fmtrk.isValid() ) {
+    //std::cout<<"Hit/track associations were found\n";
+    }
+
     //====================================================
     // Update map of bad channels for this event
     //====================================================
-    if( fVetoBadChannels ) {
+    //if( fVetoBadChannels ) {
       fBadChanMaskPerEvt = fBadChanMask;
       if( fBadChanProducer != "" ) { 
         std::vector<int> badChans;
@@ -371,7 +393,7 @@ namespace blip {
           fBadChanMaskPerEvt[ch] = true;
         }
       }
-    }
+    //}
    
     //====================================================
     // Prep the particle inventory service for MC+overlay
@@ -388,12 +410,13 @@ namespace blip {
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
     //===============================================================
+    /*
     std::map< int, int > map_gh;
     // if input collection is already gaushit, this is trivial
     if( fHitProducer == "gaushit" ) {
       for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
-    // ... but if not, find the matching gaushit. There's no convenient
-    // hit ID, so we must loop through and compare channel/time (ugh)
+     ... but if not, find the matching gaushit. There's no convenient
+     hit ID, so we must loop through and compare channel/time (ugh)
     } else {
       std::map<int,std::vector<int>> map_chan_ghid;
       for(auto& gh : hitlistGH ) map_chan_ghid[gh->Channel()].push_back(gh.key());
@@ -405,6 +428,7 @@ namespace blip {
         }
       }
     }
+    */
     
    
     //=====================================================
@@ -508,7 +532,7 @@ namespace blip {
       int   tpc     = wireid.TPC;
       int   plane   = wireid.Plane;
       int   wire    = wireid.Wire;
-        
+      
       hitinfo[i].hitid        = i;
       hitinfo[i].cryo         = cstat;
       hitinfo[i].tpc          = tpc;
@@ -551,8 +575,12 @@ namespace blip {
           h_recoWireEffQ_num->Fill(map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan]);
 
       }//endif MC
-      
+     
+      if ( fmtrk.isValid() ) {
+        if(fmtrk.at(i).size()) hitinfo[i].trkid = fmtrk.at(i)[0]->ID();
+      }
 
+      /*
       // find associated track
       if( fHitProducer == "gaushit" && fmtrk.isValid() ) {
         if(fmtrk.at(i).size()) hitinfo[i].trkid = fmtrk.at(i)[0]->ID();
@@ -563,6 +591,7 @@ namespace blip {
         int gi = map_gh[i];
         if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
       }
+      */
 
       // add to the map
       cryo_tpc_plane_hitsMap[cstat][tpc][plane].push_back(i);
@@ -610,16 +639,16 @@ namespace blip {
         hitIsGood[i] = false;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
-        if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
-        if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
-        if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
-        if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
-        if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
-        if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
-        if( hit->Multiplicity()   >= fMaxHitMult )       continue;
-        //float hit_ratio = hit->RMS() / hit->PeakAmplitude();
-        //if( hit_ratio             < fMinHitRatio[plane] ) continue;
-        //if( hit_ratio             > fMaxHitRatio[plane] ) continue;
+        if( hitinfo[i].gof        < fMinHitGOF[plane] ) continue;
+        if( hitinfo[i].gof        > fMaxHitGOF[plane] ) continue;
+        if( hit->RMS()            < fMinHitRMS[plane] ) continue;
+        if( hit->RMS()            > fMaxHitRMS[plane] ) continue;
+        if( hit->PeakAmplitude()  < fMinHitAmp[plane] ) continue;
+        if( hit->PeakAmplitude()  > fMaxHitAmp )        continue;
+        if( hit->Multiplicity()   > fMaxHitMult )       continue;
+        float hit_ratio = hit->RMS() / hit->PeakAmplitude();
+        if( hit_ratio             < fMinHitRatio[plane] ) continue;
+        if( hit_ratio             > fMaxHitRatio[plane] ) continue;
         
         // we survived the gauntlet of cuts -- hit is good!
         hitIsGood[i] = true;
@@ -710,15 +739,15 @@ namespace blip {
             //std::cout<<"span "<<span<<" ticks, "<<hc.NWires<<" wires, "<<hc.Charge<<" electrons\n";
            
             // Exclude cluster if it is *entirely* on bad channels
-            if( fVetoBadChannels ) {
+            //if( fVetoBadChannels ) {
               int nbadchanhits = 0;
               for(auto const& hitID : hc.HitIDs ) {
                 int chan = hitinfo[hitID].chan;
                 if( chanFilt.Status(chan) < 4 ||
                   fBadChanMaskPerEvt[chan] ) nbadchanhits++;
               }
-              if( nbadchanhits == hc.NHits ) continue;
-            }
+              if( fVetoBadChannels && nbadchanhits == hc.NHits ) continue;
+            //}
             
             // measure wire separation to nearest dead region
             // (0 = directly adjacent)
@@ -859,9 +888,10 @@ namespace blip {
               // Calculate time difference for start/end, and
               // check that Q-weighted means are comparable
               // *******************************************
-              float dt_start  = (hcB.StartTime - hcA.StartTime);
-              float dt_end    = (hcB.EndTime   - hcA.EndTime);
-              float dt        = ( fabs(dt_start) < fabs(dt_end) ) ? dt_start : dt_end;
+              //float dt_start  = (hcB.StartTime - hcA.StartTime);
+              //float dt_end    = (hcB.EndTime   - hcA.EndTime);
+              //float dt        = ( fabs(dt_start) < fabs(dt_end) ) ? dt_start : dt_end;
+              float dt        = hcB.Time-hcA.Time;
               float sigmaT    = std::sqrt(pow(hcA.RMS,2)+pow(hcB.RMS,2));
               float dtfrac    = (hcB.Time - hcA.Time) / sigmaT;
 
@@ -1115,6 +1145,8 @@ namespace blip {
         blip.truth = trueblips[*set_edepids.begin()];
     
     }//endloop over blip vector
+
+    std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n"; 
 
   }//End main blip reco function
  

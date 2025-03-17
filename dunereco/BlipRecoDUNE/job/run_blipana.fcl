@@ -21,7 +21,10 @@ services:
   # takes for each event. A lot of configuration can be added: details at
   # https://cdcvs.fnal.gov/redmine/projects/art/wiki/TimeTracker#TimeTracker
 
-  TimeTracker:            {}
+  #TimeTracker:            {}
+  TimeTracker:       @local::dune_time_tracker
+  MemoryTracker:     @local::dune_memory_tracker
+  RandomNumberGenerator: {} 
 
   # This parameter controls the level of descriptive output from
   # various LArSoft modules. For a list of different message levels,

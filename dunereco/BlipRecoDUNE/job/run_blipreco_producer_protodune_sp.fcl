@@ -1,0 +1,38 @@
+#include "run_blipreco_producer.fcl"
+#include "protodune_tools_dune.fcl"
+
+services:
+{   
+    #message:              @local::dune_message_services_prod_debug
+    TimeTracker:       @local::dune_time_tracker
+    MemoryTracker:     @local::dune_memory_tracker
+    RandomNumberGenerator: {} 
+    #FileCatalogMetadata:  @local::art_file_catalog_data
+                          @table::protodune_rawdecoding_services
+                          @table::protodune_data_reco_services
+    message:              @local::dune_message_services_prod
+    #FileCatalogMetadata: {
+    #    metadataFromInput: [ "dunemeta.data_stream", "dunemeta.dune_data.daqconfigname", 
+    #                         "dunemeta.dune_data.detector_config", "dunemeta.dune_data.inconsistent_hw_config",
+    #                         "dunemeta.dune_data.is_fake_data", "dunemeta.dune_data.accouple",
+    #                         "dunemeta.dune_data.calibpulsemode", "dunemeta.dune_data.febaselinehigh",
+    #                         "dunemeta.dune_data.fegain", "dunemeta.dune_data.feleak10x",
+    #                         "dunemeta.dune_data.feleakhigh", "dunemeta.dune_data.feshapingtime", "events",
+    #                         "data_quality.online_good_run_list", "detector.hv_value" ]
+    #    applicationVersion: "v07_08_00_04"
+    #    fileType: "detector"
+    #    runType: "protodune-sp"
+   #}
+    
+  TFileService: { 
+      closeFileFast: true  # default
+      fileName: "hist_blipana.root"
+  }
+
+  IFBeam:            {}
+  IFDH:              {}
+}
+
+physics.producers.blipreco.BlipAlg: @local::pdunesp_blipalg
+physics.producers.blipreco.BlipAlg.DebugMode: true
+

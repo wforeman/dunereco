@@ -1,6 +1,6 @@
 BEGIN_PROLOG
 
-# Main BlipAlg settings
+# Settings for DUNE-FD 10kt (simulation)
 dune_blipalg:
 {
   HitProducer:          "hitfd"       #// input recob::Hits to use for blip reconstruction
@@ -9,9 +9,11 @@ dune_blipalg:
   SimEDepProducer:      "IonAndScint"   #// input sim::SimEnergyDeposits (getting energy/electrons deposited)
   SimChanProducer:      "tpcrawdecoder:simpleSC" #// label for sim::SimChannels (getting drifted charge; optional)
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
-  DoHitFiltering:       false           #// filter hits based on amp, width, RMS
-  MaxWiresInCluster:    10              #// max allowable wires in a cluster
-  MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
+  DoHitFiltering:       true            #// filter hits based on amp, width, RMS
+  #MinHitAmp:            [ 3, 3, 4 ]     #// min hit amp allowed
+  MinHitRMS:            [ 0, 0, 0 ]     #// min hit RMS
+  MaxWiresInCluster:    15              #// max allowable wires in a cluster
+  MaxClusterSpan:       75              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
   ClustMatchMaxTicks:   2.0             #// max extent for matching start/end time of clusters [ticks]
   ClustMatchSigmaFact:  0.8             #// max extent for matching charge-weighted time [xRMS]
@@ -34,6 +36,19 @@ dune_blipalg:
 
 }
 
+# Settings for ProtoDUNE-SP
+pdunesp_blipalg: @local::dune_blipalg
+pdunesp_blipalg.CaloAlg.CalAreaConstants: [  1.166e-3, 1.122e-3, 1.038e-3 ]
+pdunesp_blipalg.HitProducer:    "hitpdune"
+pdunesp_blipalg.DoHitFiltering: true
+#pdunesp_blipalg.MinHitAmp:      [ 3, 3, 4 ]
+pdunesp_blipalg.TimeOffset:     [ 0.67, 0.55, 0 ]
+pdunesp_blipalg.ClustMatchMinOverlap: 0.6
+pdunesp_blipalg.ClustMatchMaxTicks:   1.5
+pdunesp_blipalg.ClustMatchSigmaFact:  0.3
+pdunesp_blipalg.ClustMatchQDiffLimit: 5e3
+pdunesp_blipalg.MinHitRMS:      [ 0, 0, 0 ]
+
 # ===============================================
 # Main BlipAna settings (TTree + diagnostic hists)
 dune_blipana:
@@ -44,7 +59,7 @@ dune_blipana:
   SaveTrkInfo:        true
   SaveHitInfo:        false
   SaveClustInfo:      true
-  DebugMode:          true
+  DebugMode:          false
 }
 
 
