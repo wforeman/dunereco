@@ -1,4 +1,8 @@
 
+add_subdirectory(Utils)
+add_subdirectory(Alg)
+add_subdirectory(job)
+
 set(      MODULE_LIBRARIES larcorealg::Geometry
                            larcore::Geometry_Geometry_service
                            larsim::Simulation lardataobj::Simulation
@@ -32,12 +36,9 @@ set(      MODULE_LIBRARIES larcorealg::Geometry
                            dune_BlipRecoAlg
 )
 
-cet_build_plugin(BlipAna art::Module SOURCE BlipAna_module.cc LIBRARIES ${MODULE_LIBRARIES} )
-cet_build_plugin(BlipRecoProducer art::Module SOURCE BlipRecoProducer_module.cc LIBRARIES ${MODULE_LIBRARIES} )
+cet_build_plugin(BlipAna          art::module SOURCE BlipAna_module.cc          LIBRARIES ${MODULE_LIBRARIES} )
+cet_build_plugin(BlipRecoProducer art::module SOURCE BlipRecoProducer_module.cc LIBRARIES ${MODULE_LIBRARIES} )
 
-add_subdirectory(Utils)
-add_subdirectory(Alg)
-add_subdirectory(job)
 
 install_headers()
 install_fhicl()

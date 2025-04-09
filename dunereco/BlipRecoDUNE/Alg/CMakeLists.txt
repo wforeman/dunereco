@@ -1,7 +1,10 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 art_make_library(LIBRARY_NAME  dune_BlipRecoAlg
                  SOURCE    BlipRecoAlg.cc
                  LIBRARIES larcorealg::Geometry
                            larcore::Geometry_Geometry_service
+                           larreco::Calorimetry
                            larsim::Simulation
                            lardataobj::Simulation
                            larsim::MCCheater_BackTrackerService_service
@@ -14,7 +17,6 @@ art_make_library(LIBRARY_NAME  dune_BlipRecoAlg
                            larpandora::LArPandoraInterface
                            nusimdata::SimulationBase
                            cetlib::cetlib
-                           cetlib_except::cetlib_except
                            art::Framework_Core
                            art::Framework_Principal
                            art::Framework_Services_Registry

@@ -83,8 +83,8 @@ namespace blip {
     float sigmaintegral = -999;
     float sumADC        = -999;     // [ADCs] from sum 
     float charge        = -999;     // [e-]
-    float peakTime      = -999999;
-    float driftTime     = -999999;  // [tick]
+    float peakTick      = -999999;  // [tick]
+    float driftTick     = -999999;  // [tick]
     float gof           = -9;
     int   g4trkid       = -9;
     int   g4pdg         = -999;
@@ -94,7 +94,7 @@ namespace blip {
   };
   
   struct HitClust {
-    int     ID              = -9;
+    int     ID              = -99;
     bool    isValid         = false;
     int     CenterChan      = -999;
     int     CenterWire      = -999;
@@ -111,13 +111,21 @@ namespace blip {
     float   Amplitude       = -999;
     float   Charge          = -999;
     float   SigmaCharge     = -999;
-    float   TimeTick        = -999;
-    float   Time            = -999;
-    float   StartHitTime    = -999;
-    float   EndHitTime      = -999;
-    float   StartTime       = -999;
-    float   EndTime         = -999;
-    float   Timespan        = -999;
+    
+    float   RawTick         = -999;
+    float   Tick            = -999;
+    float   StartTick       = -999;
+    float   EndTick         = -999;
+    float   Tickspan        = -999;
+    
+    //float   Time            = -999;
+
+    //float   TimeTick        = -999;
+    //float   StartHitTime    = -999;
+    //float   EndHitTime      = -999;
+    //float   StartTime       = -999;
+    //float   EndTime         = -999;
+    //float   Timespan        = -999;
     float   RMS             = -999;
     int     StartWire       = -999;
     int     EndWire         = -999;
@@ -142,7 +150,7 @@ namespace blip {
     int       TPC             = -9;         // TPC
     int       NPlanes         = -9;         // Num. matched planes
     int       MaxWireSpan     = -9;         // Maximum span of wires on any plane cluster
-    float     TimeTick        = -999;       // Readout time [ticks]
+    float     DriftTick       = -999;       // Readout time corrected for trigger [ticks]
     float     Time            = -999;       // Drift time [us]
     float     Charge          = -9;         // Charge on calorimetry plane
     float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)

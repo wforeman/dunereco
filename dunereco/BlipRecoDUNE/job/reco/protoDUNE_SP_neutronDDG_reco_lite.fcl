@@ -1,13 +1,5 @@
-#include "protoDUNE_SP_keepup_decoder_reco.fcl"
-
-physics.decode: [ @sequence::protoDUNE_notpcdecoding,
-                  @sequence::protoDUNE_reco_data_lite
-                ]
-
+#include "protoDUNE_SP_neutronDDG_mc_reco.fcl"
 physics.filters.nhitsfilter.HitLimit: 30000 # default 40000
-#physics.filters.nhitsfilter.ScaleThresholdForReadoutWindow: false
-#physics.filters.nhitsfilter.LimitPerTPC: false
-outputs.out1.SelectEvents: [ decode ]
 
 outputs.out1.fileName: "%ifb_%tc_reco.root"
 outputs.out1.outputCommands: [

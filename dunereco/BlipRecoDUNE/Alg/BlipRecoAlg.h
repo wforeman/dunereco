@@ -52,6 +52,9 @@
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 
+#include "dunecalib/Calib/LifetimeCalib.h"
+#include "dunecalib/CalibServices/LifetimeCalibService.h"
+
 // Blip-specific utils
 #include "dunereco/BlipRecoDUNE/Utils/BlipUtils.h"
 
@@ -62,6 +65,7 @@
 #include "TTree.h"
 
 // c++
+#include "cetlib/search_path.h"
 #include <vector>
 #include <iostream>
 #include <memory>
@@ -133,23 +137,26 @@ namespace blip {
     float   kDriftVelocity;
     float   kTickPeriod;
     int     kNumChannels;
+    float   kLifetime;
 
    private:
     
-    calo::CalorimetryAlg* fCaloAlg;
     geo::GeometryCore const& fGeom;
+    calo::CalorimetryAlg fCaloAlg;
 
     CTPMap_t  kXTicksOffsets;
 
     // --- FCL configs ---
+    std::string         fDetector;
     std::string         fHitProducer;
     std::string         fTrkProducer;
     std::string         fGeantProducer;
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;
     float               fSimGainFactor;
-    bool                fDebugMode;
+    bool                fDebug;
     float               fTrueBlipMergeDist;
+    std::vector<int>    fVetoTPCs;
     bool                fDoHitFiltering;
     float               fMaxHitTrkLength;
     float               fMaxHitAmp;
@@ -163,7 +170,7 @@ namespace blip {
     
     //std::vector<float>  fMaxHitADCDiffFrac;
 
-
+        
     int                 fMaxHitMult;
     float               fHitClustWidthFact;
     int                 fHitClustWireRange;
@@ -204,6 +211,9 @@ namespace blip {
     // --- Histograms ---
     //TH1D*   h_chanstatus;
     //TH1D*   h_hit_chanstatus;
+    
+    TH2D*   h_tpc_chan;
+
     TH1D*   h_hit_times;
     TH1D*   h_chan_nhits;
     //TH1D*   h_chan_nclusts;

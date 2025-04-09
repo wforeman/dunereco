@@ -31,6 +31,7 @@ art_make_library(LIBRARY_NAME  dune_BlipUtils
                            ROOT::Geom
                            ROOT::XMLIO
                            ROOT::Gdml
+                           ROOT::Hist
 )
 
 install_headers()

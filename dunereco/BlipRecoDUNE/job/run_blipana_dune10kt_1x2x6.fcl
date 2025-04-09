@@ -1,0 +1,4 @@
+#include "run_blipana.fcl"
+physics.analyzers.blipana: @local::dune_blipana_dune10kt_1x2x6
+services.SpaceCharge.EnableCalEfieldSCE: true
+services.SpaceCharge.EnableCalSpatialSCE: true

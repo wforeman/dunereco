@@ -255,10 +255,13 @@ namespace BlipUtils {
       hc.SigmaCharge      = 0;
       hc.Amplitude        = 0;
       hc.NPulseTrainHits  = 0;
-      float startTime     = 9e9;
-      float endTime       = -9e9;
+      float startTick     = 9e9;
+      //float startTime     = 9e9;
+      float endTick       = -9e9;
+      //float endTime       = -9e9;
       float weightedTick  = 0;
-      float weightedTime  = 0;
+      float weightedTickRaw = 0;
+      //float weightedTime  = 0;
       float weightedGOF   = 0;
       //float weightedRatio = 0;
       float qGOF          = 0;
@@ -282,11 +285,12 @@ namespace BlipUtils {
         hc.Charge     += q;
         hc.ADCs       += hitinfo.integralADC;
         hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
-        weightedTick  += q*hitinfo.peakTime;
-        weightedTime  += q*hitinfo.driftTime;
-        startTime     = std::min(startTime, hitinfo.driftTime-hitinfo.rms);
-        endTime       = std::max(endTime,   hitinfo.driftTime+hitinfo.rms);
-        tvec          .push_back(hitinfo.driftTime);
+        weightedTick  += q*hitinfo.driftTick;
+        weightedTickRaw += q*hitinfo.peakTick;
+        //weightedTime  += q*hitinfo.driftTick;
+        startTick     = std::min(startTick, hitinfo.driftTick-hitinfo.rms);
+        endTick       = std::max(endTick,   hitinfo.driftTick+hitinfo.rms);
+        tvec          .push_back(hitinfo.driftTick);
         qvec          .push_back(q);
         dqvec         .push_back(dq);
         rmsvec        .push_back(hitinfo.rms);
@@ -309,19 +313,19 @@ namespace BlipUtils {
       hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
       hc.StartWire  = *hc.Wires.begin();
       hc.EndWire    = *hc.Wires.rbegin();
-      hc.StartTime  = startTime;
-      hc.EndTime    = endTime;
-      hc.Timespan   = hc.EndTime - hc.StartTime;
-      hc.Time       = weightedTime / hc.Charge;
-      hc.TimeTick   = weightedTick / hc.Charge;
-
+      hc.StartTick  = startTick;
+      hc.EndTick    = endTick;
+      //hc.EndTime    = endTime;
+      hc.Tickspan   = hc.EndTick - hc.StartTick;
+      hc.Tick       = weightedTick / hc.Charge;
+      hc.RawTick    = weightedTickRaw / hc.Charge;
       // overall cluster RMS and uncertainty in charge
       float sig_sumSq = 0;
       float dt_sumSq  = 0;
       float dq        = 0;
       for(size_t i=0; i<qvec.size(); i++) {
         float w = qvec[i] / hc.Charge;
-        dt_sumSq  += w*pow(tvec[i]-hc.Time,2);
+        dt_sumSq  += w*pow(tvec[i]-hc.Tick,2);
         sig_sumSq += pow(w*rmsvec[i],2);
         dq        += w*dqvec[i];
 
@@ -367,6 +371,7 @@ namespace BlipUtils {
     float driftVelocity   = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature()); 
     float tick_to_cm      = clockData.TPCClock().TickPeriod() * driftVelocity;
     
+
     int cryo = hcs[0].Cryostat;
     int tpc  = hcs[0].TPC;
     
@@ -438,27 +443,45 @@ namespace BlipUtils {
     // Calculate mean drift time and X-position
     // (note that the 'time' of each of the hit clusters
     // have already been corrected for plane-to-plane offsets)
-    newblip.TimeTick= 0;
+    //auto const& tpcID = geo::TPCID(geo::CryostatID(newblip.Cryostat),newblip.TPC);
+    
+    newblip.DriftTick= 0;
     newblip.Time = 0;
     newblip.dX = 0;
+    float pos_x = 0;
     float vsize = (float)hcs.size();
     for(auto hc : hcs ) {
-      newblip.TimeTick  += hc.TimeTick / vsize;
-      newblip.Time      += hc.Time / vsize;
-      newblip.dX  = std::max((float)(hc.EndTime-hc.StartTime)*tick_to_cm, newblip.dX);
+      //rawtick     += hc.RawTick / vsize;
+      //auto const& planeID = art::ServiceHandle<geo::Geometry>()->GetBeginPlaneID(tpcID);
+      //auto const& planeID = geo::PlaneID(hc.Cryostat,hc.TPC,hc.Plane);
+      //std::cout<<"   TPC "<<hc.TPC<<"    plane "<<hc.Plane<<"   rawtick "<<hc.RawTick<<"\n";
+      //float this_x = detProp.ConvertTicksToX(hc.RawTick, hc.Plane, hc.TPC, hc.Cryostat);
+      //std::cout<<"   rawtick= "<<hc.RawTick<<", x = "<<this_x<<"\n";
+      //pos_x             += detProp.ConvertTicksToX(hc.RawTick, planeID) / vsize;
+      pos_x             += detProp.ConvertTicksToX(hc.RawTick, hc.Plane, hc.TPC, hc.Cryostat) / vsize;
+      newblip.DriftTick += hc.Tick / vsize;
+      newblip.dX        += ((hc.EndTick-hc.StartTick)*tick_to_cm) / vsize;
+      //newblip.dX  = std::max((float)(hc.EndTick-hc.StartTick)*tick_to_cm, newblip.dX);
     }
    
-    //auto const& tpcID = geo::TPCID(geo::CryostatID(newblip.Cryostat),newblip.TPC);
-    //auto const& planeID = art::ServiceHandle<geo::Geometry>()->GetBeginPlaneID(tpcID);
-    //newblip.Position  .SetX(detProp.ConvertTicksToX(newblip.TimeTick, planeID)); 
+    newblip.Time = newblip.DriftTick * clockData.TPCClock().TickPeriod();
     
-    // convert ticks to X
-      auto const& cryostat= art::ServiceHandle<geo::Geometry>()->Cryostat(geo::CryostatID(newblip.Cryostat));
-      auto const& tpcgeom = cryostat.TPC(newblip.TPC);
-      auto const  xyz     = tpcgeom.Plane(0).GetCenter();
-      int         dirx    = DriftDirX(tpcgeom);
-      
-      newblip.Position.SetX( xyz.X() + dirx * tick_to_cm * newblip.Time );
+
+    //std::cout<<"Blip TPC / tick: "<<newblip.TPC<<"  "<<newblip.DriftTick<<"\n";
+
+      // convert ticks to X
+      //auto const& cryostat= art::ServiceHandle<geo::Geometry>()->Cryostat(geo::CryostatID(newblip.Cryostat));
+      //auto const& tpcgeom = cryostat.TPC(newblip.TPC);
+      //auto const  xyz     = tpcgeom.Plane(0).GetCenter();
+      //int         dirx    = DriftDirX(tpcgeom);
+      //std::cout<<"TPC X0 = "<<xyz.X()<<"\n";
+
+      //float xcalc = xyz.X() + dirx * tick_to_cm * newblip.DriftTick;
+      //std::cout<<"Using calc: "<<xcalc<<"\n";
+     
+     //std::cout<<"Manual calc: "<<xcalc<<", larsoft funct: "<<pos_x<<"\n";
+      newblip.Position.SetX(pos_x);
+      //newblip.Position.SetX( xyz.X() + dirx * tick_to_cm * newblip.Time );
 
     // this should ALREADY be accounted for at the hit-processing level in BlipRecoAlg,
     // through the use of GetXTicksOffset...
@@ -521,22 +544,22 @@ namespace BlipUtils {
     // only match across different wires in same TPC
     if( hc1.TPC != hc2.TPC    ) return false;
 
-    if(     hc1.StartTime <= hc2.EndTime 
-        &&  hc2.StartTime <= hc1.EndTime )  return true;
+    if(     hc1.StartTick <= hc2.EndTick 
+        &&  hc2.StartTick <= hc1.EndTick )  return true;
     else return false;
   }
   bool DoHitClustsOverlap(blip::HitClust const& hc1, float t1, float t2 ){
     blip::HitClust hc2;
     hc2.TPC = hc1.TPC;
-    hc2.StartTime = t1;
-    hc2.EndTime = t2;
+    hc2.StartTick = t1;
+    hc2.EndTick = t2;
     return DoHitClustsOverlap(hc1,hc2);
   }
 
   //====================================================================
   // Calculates the level of time overlap between two clusters
   float CalcHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
-    return CalcOverlap(hc1.StartTime,hc1.EndTime,hc2.StartTime,hc2.EndTime);
+    return CalcOverlap(hc1.StartTick,hc1.EndTick,hc2.StartTick,hc2.EndTick);
   }
 
   float CalcOverlap(const float& x1, const float& x2, const float& y1, const float& y2){
@@ -555,7 +578,7 @@ namespace BlipUtils {
   
   //====================================================================
   bool DoHitClustsMatch(blip::HitClust const& hc1, blip::HitClust const& hc2, float minDiffTicks = 2){
-    if( fabs(hc1.Time-hc2.Time) < minDiffTicks ) return true;
+    if( fabs(hc1.Tick-hc2.Tick) < minDiffTicks ) return true;
     else return false;
   }
 

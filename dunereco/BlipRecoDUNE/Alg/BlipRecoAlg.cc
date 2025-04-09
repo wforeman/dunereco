@@ -6,11 +6,13 @@ namespace blip {
   // Constructor
   //###########################################################
   BlipRecoAlg::BlipRecoAlg( fhicl::ParameterSet const& pset )
-  : fGeom { *lar::providerFrom<geo::Geometry>() }
+    : fGeom { *lar::providerFrom<geo::Geometry>() }
+    , fCaloAlg ( pset.get<fhicl::ParameterSet>("CaloAlg") )
   {
     this->reconfigure(pset);
    
     auto const& detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob();
+    //auto const& detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(evt);
     auto const& clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
     kLArDensity           = detProp.Density();
     kNominalEfield        = detProp.Efield();
@@ -18,7 +20,9 @@ namespace blip {
     kTickPeriod           = clockData.TPCClock().TickPeriod();
     kNominalRecombFactor  = ModBoxRecomb(fCalodEdx,kNominalEfield);
     kWion                 = 1000./util::kGeVToElectrons;
-   
+  
+    std::cout<<"Vetoing "<<fVetoTPCs.size()<<" TPCs\n";
+
     // -------------------------------------------------------------------
     // Determine number cryostats, TPC, planes, wires.
     //
@@ -43,17 +47,20 @@ namespace blip {
         float halfheight  = fGeom.DetHalfHeight(tpcid);
         float length      = fGeom.DetLength(tpcid);
         auto  tpcffcenter = fGeom.GetTPCFrontFaceCenter(tpcid);
-        
-        std::cout<<"CRYOSTAT "<<cstat<<" / TPC "<<tpc<<"\n";
+       
+        std::cout<<"============== CRYOSTAT "<<cstat<<" / TPC "<<tpc<<"=========================\n";
         printf("Front face center: (%f,%f,%f)\n",tpcffcenter.X(),tpcffcenter.Y(),tpcffcenter.Z());
         std::cout<<"DetHalfWidth: "<<halfwidth<<" cm, halfheight: "<<halfheight<<" cm, length: "<<length<<"\n";
-        
+        std::cout<<"Trigger time: "<<clockData.TriggerTime()<<"\n";
+        std::cout<<"Tick period : "<<kTickPeriod<<"\n";
+
         // Loop planes in TPC 'tpc'
         for(size_t pl=0; pl<fGeom.Nplanes(tpcid); pl++){
           auto const& planeid = geo::PlaneID(cstat,tpc,pl);
           kNumChannels += fGeom.Nwires(planeid);
           float offset = detProp.GetXTicksOffset(pl,tpc,cstat);
-          std::cout<<"  PLANE "<<pl<<":  "<<fGeom.Nwires(planeid)<<" wires, XTicksOffset: "<<offset<<"\n";
+          std::cout<<"------------------------------------------------\n";
+          std::cout<<"--- PLANE "<<pl<<":  "<<fGeom.Nwires(planeid)<<" wires, XTicksOffset: "<<offset<<"\n";
           kXTicksOffsets[cstat][tpc][pl] = 0;
 
           if( fApplyXTicksOffset ) {
@@ -65,9 +72,15 @@ namespace blip {
             auto const& cryostat  = fGeom.Cryostat(geo::CryostatID(cstat));
             auto const& tpcgeom   = cryostat.TPC(tpc);
             auto const xyz        = tpcgeom.Plane(0).GetCenter();
+            auto const xyz_p      = tpcgeom.Plane(pl).GetCenter();
             const double dir((tpcgeom.DriftDirection() == geo::kNegX) ? +1.0 : -1.0);
             float x_ticks_coefficient = kDriftVelocity*kTickPeriod;
             float goofy_offset = -xyz.X() / (dir * x_ticks_coefficient);
+            float x = xyz.X();
+            float xp = xyz_p.X();
+            std::cout<<"  X (pl0): "<<xyz.X()<<"     x_ticks_coeff: "<<x_ticks_coefficient<<"\n";
+            std::cout<<"  X      : "<<xyz_p.X()<<" \n";
+            std::cout<<"  dX     : "<<xp-x<<"   dticks: "<<(xp-x)/x_ticks_coefficient<<"\n";
             std::cout<<"  goofy offset "<<goofy_offset<<"\n";
             std::cout<<"  Offset after geometric correction: "<<offset - goofy_offset<<"\n";
             kXTicksOffsets[cstat][tpc][pl] = offset - goofy_offset;
@@ -86,7 +99,7 @@ namespace blip {
     }
 
     // initialize custom 'bad' channel list
-    fBadChanMask       .resize(8256,false);
+    fBadChanMask.resize(8256,false);
     fBadChanMaskPerEvt = fBadChanMask;
     if( fBadChanFile != "" ) {
       cet::search_path sp("FW_SEARCH_PATH");
@@ -113,10 +126,11 @@ namespace blip {
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
-    printf("  - Efield: %.4f kV/cm\n",kNominalEfield);
-    printf("  - Drift velocity: %.4f cm/us\n",kDriftVelocity);
-    printf("  - using dE/dx: %.2f MeV/cm\n",fCalodEdx);
-    printf("  - equiv. recomb: %.4f\n",kNominalRecombFactor);
+    printf("  - Efield:           %.4f kV/cm\n",kNominalEfield);
+    printf("  - Temperature:      %.4f K\n",detProp.Temperature());
+    printf("  - Drift velocity:   %.4f cm/us\n",kDriftVelocity);
+    printf("  - using dE/dx:      %.2f MeV/cm\n",fCalodEdx);
+    printf("  - equiv. recomb:    %.4f\n",kNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
     printf("*******************************************\n");
 
@@ -161,6 +175,8 @@ namespace blip {
     //h_chan_nclusts    = hdir.make<TH1D>("chan_nclusts","Untracked isolated hits;TPC readout channel;Total clusts",kNumChannels,0,kNumChannels);
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
     h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
+    
+    h_tpc_chan        = hdir.make<TH2D>("tpc_chan","TPC vs chan;Channel;TPC",100000,0,100000,12,0,12);
 
     int qbins = 200;
     float qmax = 100;
@@ -210,7 +226,9 @@ namespace blip {
   //###########################################################
   void BlipRecoAlg::reconfigure( fhicl::ParameterSet const& pset ){
     
-    fDebugMode          = pset.get<bool>     ("DebugMode",         false);
+    fDebug              = pset.get<bool>              ("DebugMode",         false);
+    
+    fDetector           = pset.get<std::string>   ("Detector",          "dune10kt");
 
     fHitProducer        = pset.get<std::string>   ("HitProducer",       "gaushit");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "pandora");
@@ -219,8 +237,9 @@ namespace blip {
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
     fSimGainFactor      = pset.get<float>         ("SimGainFactor",     -9);
     fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
-    fMaxHitTrkLength    = pset.get<float>               ("MaxHitTrkLength", 5);
+    fVetoTPCs           = pset.get<std::vector<int>>    ("VetoTPCs",        {}); 
     fDoHitFiltering     = pset.get<bool>                ("DoHitFiltering",  false);
+    fMaxHitTrkLength    = pset.get<float>               ("MaxHitTrkLength", 5);
     fMaxHitMult         = pset.get<int>                 ("MaxHitMult",      10);
     fMaxHitAmp          = pset.get<float>               ("MaxHitAmp",       200);  
     fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",       {-99e9,-99e9,-99e9});
@@ -253,7 +272,6 @@ namespace blip {
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
     
-    fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
     fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  false);
@@ -281,10 +299,12 @@ namespace blip {
   // this function is run.
   //###########################################################
   void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
-  
-    std::cout<<"\n"
-    <<"--------------------------------\n"
-    <<"BlipRecoAlg: run "<<evt.id().run()<<", evt "<<evt.id().event()<<"\n";
+ 
+    if( fDebug ) {
+      std::cout<<"\n"
+      <<"--------------------------------\n"
+      <<"BlipRecoAlg: run "<<evt.id().run()<<", evt "<<evt.id().event()<<"\n";
+    }
   
     //=======================================
     // Reset things
@@ -307,7 +327,18 @@ namespace blip {
     auto const& clockData           = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
     //auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     //auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
-  
+
+    // -- lifetime
+    kLifetime = detProp.ElectronLifetime()*1e3;
+    if( fDetector == "pdunesp" && evt.isRealData() ) {
+      // Electron lifetime from database calibration service provider
+      art::ServiceHandle<calib::LifetimeCalibService> lifetimecalibHandler;
+      calib::LifetimeCalibService & lifetimecalibService = *lifetimecalibHandler;
+      calib::LifetimeCalib *lifetimecalib = lifetimecalibService.provider();
+      kLifetime = lifetimecalib->GetLifetime()*1e3; // [ms]*1000.0 -> [us]
+    }
+    std::cout<<"Lifetime is "<<kLifetime<<"\n";
+
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
 
@@ -329,16 +360,13 @@ namespace blip {
     if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
       art::fill_ptr_vector(simchanlist, simchanHandle);
 
-    // -- hits (from input module, usually track-masked subset of gaushit)
+    // -- hits
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
     try {
       if (evt.getByLabel(fHitProducer,hitHandle))
-      //art::Handle< std::vector<recob::Hit>> hitHandle = evt.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
         art::fill_ptr_vector(hitlist, hitHandle);
-    } catch (...) {
-    }
-    
+    } catch (...) {}
     if( !hitlist.size() ) {
       std::cout<<"No hits found in this event! No use continuing...\n";
       return;
@@ -356,8 +384,7 @@ namespace blip {
     try {
       if (evt.getByLabel(fTrkProducer,tracklistHandle))
         art::fill_ptr_vector(tracklist, tracklistHandle);
-    } catch (...) {
-    }
+    } catch (...) {}
 
     // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
@@ -367,16 +394,18 @@ namespace blip {
     // -- backtracker
     art::ServiceHandle<cheat::BackTrackerService> btService;
 
-    std::cout
-    <<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n"
-    <<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n"
-    //<<"Found "<<plist.size()<<" MC particles from "<<fGeantProducer<<"\n"
-    //<<"Found "<<sedlist.size()<<" SimEnergyDeposits from "<<fSimDepProducer<<"\n"
-    //<<"Found "<<simchanlist.size()<<" SimChannels from "<<fSimChanProducer<<"\n"
-    ;
-    if( fmtrk.isValid() ) {
-    //std::cout<<"Hit/track associations were found\n";
-    }
+   if( fDebug ) { 
+      std::cout
+      <<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n"
+      <<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n"
+      <<"Found "<<plist.size()<<" MC particles from "<<fGeantProducer<<"\n"
+      <<"Found "<<sedlist.size()<<" SimEnergyDeposits from "<<fSimDepProducer<<"\n"
+      <<"Found "<<simchanlist.size()<<" SimChannels from "<<fSimChanProducer<<"\n"
+      ;
+      if( fmtrk.isValid() ) {
+        std::cout<<"Hit/track associations were found\n";
+      }
+   }
 
     //====================================================
     // Update map of bad channels for this event
@@ -544,10 +573,13 @@ namespace blip {
       hitinfo[i].integralADC  = thisHit->Integral();
       hitinfo[i].sigmaintegral = thisHit->SigmaIntegral();
       hitinfo[i].sumADC       = thisHit->SummedADC();
-      hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
+      hitinfo[i].charge       = fCaloAlg.ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
-      hitinfo[i].peakTime     = thisHit->PeakTime();
-      hitinfo[i].driftTime    = thisHit->PeakTime()-kXTicksOffsets[cstat][tpc][plane]; //detProp.GetXTicksOffset(wireid);
+      hitinfo[i].peakTick     = thisHit->PeakTime();
+      hitinfo[i].driftTick    = thisHit->PeakTime()-kXTicksOffsets[cstat][tpc][plane]; //detProp.GetXTicksOffset(wireid);
+      //hitinfo[i].driftTime    = thisHit->PeakTime()-detProp.GetXTicksOffset(wireid);
+
+      //std::cout<<"Plane "<<plane<<"   correction "<<detProp.GetXTicksOffset(wireid)<<"\n";
 
       if( plist.size() ) {
         int truthid       = -9;
@@ -629,7 +661,15 @@ namespace blip {
         hitIsGood[i] = false;
       }
     }
-        
+      
+    // Ignore hits from certain TPCs
+    if( fVetoTPCs.size() ) {
+      for(size_t i=0; i<hitlist.size(); i++){
+        if( std::find(fVetoTPCs.begin(), fVetoTPCs.end(), hitinfo[i].tpc) != fVetoTPCs.end()) 
+          hitIsGood[i] = false;
+      }
+    }
+    
 
     // Filter based on hit properties. For hits that are a part of
     // multi-gaussian fits (multiplicity > 1), need to re-think this.
@@ -683,6 +723,7 @@ namespace blip {
             int startWire = hitinfo[hi].wire;
             int endWire   = hitinfo[hi].wire;
             hitIsClustered[hi] = true;
+            
 
             // see if we can add other hits to it; continue until 
             // no new hits can be lumped in with this clust
@@ -705,11 +746,11 @@ namespace blip {
                   if( hitinfo[hii].wire > w2 ) continue;
                   if( hitinfo[hii].wire < w1 ) continue;
                   
-                  float t1 = hitinfo[hj].peakTime;
-                  float t2 = hitinfo[hii].peakTime;
+                  float t1 = hitinfo[hj].peakTick;
+                  float t2 = hitinfo[hii].peakTick;
                   float rms_sum = (hitinfo[hii].rms + hitinfo[hj].rms);
                   if( fabs(t1-t2) > fHitClustWidthFact * rms_sum ) continue;
-
+                  
                   hitinfoVec.push_back(hitinfo[hj]);
                   startWire = std::min( hitinfo[hj].wire, startWire );
                   endWire   = std::max( hitinfo[hj].wire, endWire );
@@ -722,13 +763,23 @@ namespace blip {
 
               }
             } while ( hitsAdded!=0 );
+
+            // veto cluster if any hit is at the far edges of the readout
+            bool edgeflag = false;
+            for(auto & h : hitinfoVec){
+              float up = h.peakTick+3*h.rms;
+              float dn = h.peakTick-3*h.rms;
+              if( dn <= 0 || up >= detProp.ReadOutWindowSize() ) edgeflag=true;
+            }
             
+
             blip::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
-            float span = hc.EndTime - hc.StartTime;
+            float span = hc.EndTick - hc.StartTick;
             h_clust_nwires->Fill(hc.NWires);
             h_clust_timespan->Fill(span);
             
             // basic cluster checks
+            if( edgeflag                      )   continue;
             if( span      <= 0                )   continue;
             if( span      > fMaxClusterSpan   )   continue;
             if( hc.NWires > fMaxWiresInCluster )  continue;
@@ -742,7 +793,9 @@ namespace blip {
             //if( fVetoBadChannels ) {
               int nbadchanhits = 0;
               for(auto const& hitID : hc.HitIDs ) {
+                int tpc  = hitinfo[hitID].tpc;
                 int chan = hitinfo[hitID].chan;
+                h_tpc_chan->Fill(chan,tpc);
                 if( chanFilt.Status(chan) < 4 ||
                   fBadChanMaskPerEvt[chan] ) nbadchanhits++;
               }
@@ -891,9 +944,9 @@ namespace blip {
               //float dt_start  = (hcB.StartTime - hcA.StartTime);
               //float dt_end    = (hcB.EndTime   - hcA.EndTime);
               //float dt        = ( fabs(dt_start) < fabs(dt_end) ) ? dt_start : dt_end;
-              float dt        = hcB.Time-hcA.Time;
+              float dt        = hcB.Tick-hcA.Tick;
               float sigmaT    = std::sqrt(pow(hcA.RMS,2)+pow(hcB.RMS,2));
-              float dtfrac    = (hcB.Time - hcA.Time) / sigmaT;
+              float dtfrac    = (hcB.Tick-hcA.Tick) / sigmaT;
 
               // *******************************************
               // Check relative charge between clusters
@@ -989,6 +1042,12 @@ namespace blip {
             // make our new blip, but if it isn't valid, forget it and move on
             blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup,detProp,clockData);
             if( !newBlip.isValid ) continue;
+
+            // ---------------------------------------
+            // is this blip physical? (todo: check if blip falls in actual X-range for this TPC)
+      
+            // ---------------------------------------
+            // does this blip meet the required number of planes
             if( newBlip.NPlanes < fMinMatchedPlanes ) continue;
             
             // ---------------------------------------
@@ -1096,11 +1155,19 @@ namespace blip {
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
       // apply this correction can do more harm than good! Note lifetime is in
       // units of 'ms', not microseconds, hence the 1E-3 conversion factor.
-      if( fLifetimeCorr && blip.Time>0 ) depEl *= exp( 1e-3*blip.Time/detProp.ElectronLifetime());
+      if( fLifetimeCorr && blip.Time>0 ) depEl *= exp( -1.*blip.Time/kLifetime );
       
+      // SCE test
+      //geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point,blip.TPC);
+      //std::cout<<"Blip at XYZ "<<blip.Position.X()<<", "<<blip.Position.Y()<<", "<<blip.Position.Z()<<"\n";
+      //std::cout<<"SCE dx offset here: "<< loc_offset.X() <<"\n";
+      //std::cout<<"SCE dz offset here: "<< loc_offset.Z() <<"\n";
+
+
       // --- SCE corrections ---
-      geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
       if( fSCECorr ) {
+      
+        geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
 
         // 1) Spatial correction
         if( SCE_provider->EnableCalSpatialSCE() ) {
@@ -1146,7 +1213,7 @@ namespace blip {
     
     }//endloop over blip vector
 
-    std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n"; 
+    if( fDebug ) std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n"; 
 
   }//End main blip reco function
  

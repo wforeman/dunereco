@@ -8,8 +8,11 @@ services:
     MemoryTracker:     @local::dune_memory_tracker
     RandomNumberGenerator: {} 
     #FileCatalogMetadata:  @local::art_file_catalog_data
+                          @table::protodune_services
                           @table::protodune_rawdecoding_services
                           @table::protodune_data_reco_services
+    #DetectorPropertiesService:  @local::protodune_detproperties
+    #DetectorPropertiesService:  @local::protodunesp_detproperties
     message:              @local::dune_message_services_prod
     #FileCatalogMetadata: {
     #    metadataFromInput: [ "dunemeta.data_stream", "dunemeta.dune_data.daqconfigname", 
@@ -33,6 +36,12 @@ services:
   IFDH:              {}
 }
 
-#physics.analyzers.blipana.ProtoDUNETrigger: 1
-physics.analyzers.blipana.BlipAlg: @local::pdunesp_blipalg
-physics.analyzers.blipana.BlipAlg.DebugMode: true
+physics.analyzers.blipana: @local::dune_blipana_pdunesp
+
+services.SpaceCharge.EnableCalEfieldSCE: true
+services.SpaceCharge.EnableCalSpatialSCE: true
+
+# lifetime database
+services.LifetimeCalibService.IsMC: false
+services.LifetimeCalibService.UseCondbLifetime: true
+services.LifetimeCalibService.LifetimeDBTag: "v1.0"

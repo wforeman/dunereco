@@ -1,0 +1,5 @@
+
+# Cathode voltage 126 kV --> "350 V/cm"
+# Actual nominal field ~ 0.487 kV/cm --> x0.7 --> 0.341 kV/cm
+services.DetectorPropertiesService.Efield: [ 3.41e-1, 6.19423e-1, 7.76903e-1, 1.72178 ]
+
