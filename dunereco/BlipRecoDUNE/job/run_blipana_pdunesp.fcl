@@ -42,6 +42,11 @@ services.SpaceCharge.EnableCalEfieldSCE: true
 services.SpaceCharge.EnableCalSpatialSCE: true
 
 # lifetime database
-services.LifetimeCalibService.IsMC: false
-services.LifetimeCalibService.UseCondbLifetime: true
-services.LifetimeCalibService.LifetimeDBTag: "v1.0"
+services.LifetimeCalibService: {
+      Interpolate:    true
+      IsMC:           false
+      LifetimeDBTag:  "v1.0"
+      LifetimeFileName: ""
+      UseCondbLifetime: true
+      service_provider: "LifetimeCalibServiceProtoDUNE"
+   } 

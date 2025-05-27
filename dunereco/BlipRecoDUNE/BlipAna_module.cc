@@ -251,6 +251,8 @@ class BlipAnaTreeDataStruct
   bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
   int   blip_clustid[kNplanes][kMaxBlips];// cluster ID per plane
   int   blip_nwires[kNplanes][kMaxBlips]; // nwires per plane
+  float blip_maxamp[kNplanes][kMaxBlips]; // max amplitude among all hits in blip (plane-specific)
+  float blip_minamp[kNplanes][kMaxBlips]; // min amplitude among all groups of hits per wire (plane-specific thresholding study)
 
   TTree*  calibTree;
   int     acptrk_npts;
@@ -401,6 +403,8 @@ class BlipAnaTreeDataStruct
     for(int i=0; i<kNplanes; i++){
       FillWith(blip_clustid[i], -9);
       FillWith(blip_nwires[i],  -9);
+      FillWith(blip_maxamp[i],  -9);
+      FillWith(blip_minamp[i],  -9);
     }
   }
 
@@ -502,6 +506,8 @@ class BlipAnaTreeDataStruct
     if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],Form("blip_pl%i_nwires[nblips]/I",i));
+    for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_maxamp",i),blip_maxamp[i],Form("blip_pl%i_maxamp[nblips]/F",i));
+    for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_minamp",i),blip_minamp[i],Form("blip_pl%i_minamp[nblips]/F",i));
     
     
     if( saveTruthInfo ) {
@@ -633,7 +639,9 @@ class BlipAna : public art::EDAnalyzer
 
   // --- Histograms ---
   TH1D*   h_triggercodes;
-  
+ 
+  TH2D*   h_blipE_vs_hitamp[kNplanes];
+
   TH1D*   h_part_process;
   TH1D*   h_nhits[kNplanes];
   //TH1D*   h_nhits_noise[kNplanes];
@@ -805,6 +813,14 @@ class BlipAna : public art::EDAnalyzer
     float gofMin  = -10;  float gofMax = 10; int gofBins = 200;
     for(int i=kNplanes-1; i >= 0; i--) {
       
+      h_blipE_vs_hitamp[i] = dir_diag.make<TH2D>(
+        Form("pl%i_blipE_vs_hitamp",i),  
+        Form("Plane %i;Blip reco energy [MeVee];Hit amplitude [ADC]",i),
+        100,0,10,
+        100,0,20
+      );
+      h_blipE_vs_hitamp[i]->SetOption("colz");
+
       h_nhits[i]        = dir_hits.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;total number of hits",i),hitBins,0,hitMax);
       //h_nhits_noise[i]  = dir_hits.make<TH1D>(Form("pl%i_nhits_noise",i),  Form("Plane %i (non-truth-matched);total number of hits",i),hitBins,0,hitMax);
 
@@ -980,7 +996,8 @@ void BlipAna::analyze(const art::Event& evt)
   // Get ProtoDUNE trigger
   //=======================================
   if( fGetRDTimestamp ) {
-    art::ValidHandle<std::vector<raw::RDTimeStamp>> timeStamps = evt.getValidHandle<std::vector<raw::RDTimeStamp>>("timingrawdecoder:daq");
+    art::ValidHandle<std::vector<raw::RDTimeStamp>> timeStamps 
+      = evt.getValidHandle<std::vector<raw::RDTimeStamp>>("timingrawdecoder:daq");
     // Check that we have good information
     if(timeStamps.isValid() && timeStamps->size() == 1){
       // Access the trigger information. Beam trigger flag = 0xc
@@ -1526,6 +1543,31 @@ void BlipAna::analyze(const art::Event& evt)
       if( blp.clusters[ipl].NHits <= 0 ) continue;
       fData->blip_clustid[ipl][i] = blp.clusters[ipl].ID;
       fData->blip_nwires[ipl][i]  = blp.clusters[ipl].NWires;
+      
+      // record all amps
+
+
+      // max amp
+      fData->blip_maxamp[ipl][i]  = blp.clusters[ipl].Amplitude;
+
+      // min amp
+      //fData->blip_minamp[ipl][i] = 
+      // find all hits in this blip per plane
+      auto& hids = blp.clusters[ipl].HitIDs;
+      float minamp = -9;
+      int hitnum = (int)hids.size();
+      for(auto const& id : hids ) {
+        //std::cout<<"Blip "<<i<<" on plane "<<ipl<<"  HITID "<<id<<"\n";
+        auto const& hinfo = fBlipAlg.hitinfo[id];
+        int mult    = hitlist[id]->Multiplicity();
+        float amp   = hinfo.amp; 
+        if( amp > 0 ) h_blipE_vs_hitamp[ipl]->Fill(blp.Energy,amp,1./hitnum);
+        if( mult != 1 ) continue;
+        if( minamp < 0 || amp < minamp ) minamp = amp;
+      }
+      
+      fData->blip_minamp[ipl][i] = minamp;
+    
     }
 
     // Select picky (high-quality) blips:

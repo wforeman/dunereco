@@ -332,12 +332,15 @@ namespace blip {
     kLifetime = detProp.ElectronLifetime()*1e3;
     if( fDetector == "pdunesp" && evt.isRealData() ) {
       // Electron lifetime from database calibration service provider
+      // NOTE: this doesn't work anymore!
+      /*
+      std::cout<<"Retrieving ProtoDUNE lifetime for run "<<evt.id().run()<<"\n";
       art::ServiceHandle<calib::LifetimeCalibService> lifetimecalibHandler;
       calib::LifetimeCalibService & lifetimecalibService = *lifetimecalibHandler;
       calib::LifetimeCalib *lifetimecalib = lifetimecalibService.provider();
       kLifetime = lifetimecalib->GetLifetime()*1e3; // [ms]*1000.0 -> [us]
+      */
     }
-    std::cout<<"Lifetime is "<<kLifetime<<"\n";
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;

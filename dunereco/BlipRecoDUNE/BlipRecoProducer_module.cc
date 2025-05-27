@@ -64,7 +64,7 @@ class BlipRecoProducer : public art::EDProducer
   void produce(art::Event & e) override;
 
   private:
-  blip::BlipRecoAlg*      fBlipAlg;
+  blip::BlipRecoAlg       fBlipAlg;
   std::string             fHitProducer;
 
 };
@@ -76,10 +76,11 @@ class BlipRecoProducer : public art::EDProducer
 //###################################################
 BlipRecoProducer::BlipRecoProducer(fhicl::ParameterSet const & pset)
    : EDProducer(pset)
+   , fBlipAlg( pset.get<fhicl::ParameterSet>("BlipAlg") )
 {
   // Read in fcl parameters for blip reco alg
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
-  fBlipAlg        = new blip::BlipRecoAlg( pset_blipalg );
+  //fBlipAlg        = new blip::BlipRecoAlg( pset_blipalg );
   
   fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer");
  
@@ -130,7 +131,7 @@ void BlipRecoProducer::produce(art::Event & evt)
   //============================================
   // Run blip reconstruction: 
   //============================================
-  fBlipAlg->RunBlipReco(evt);
+  fBlipAlg.RunBlipReco(evt);
   
   
   //===========================================
@@ -148,8 +149,8 @@ void BlipRecoProducer::produce(art::Event & evt)
   //===========================================
   // Make recob::SpacePoints out of the blip::Blips
   //===========================================
-  for(size_t i=0; i<fBlipAlg->blips.size(); i++){
-    auto& b = fBlipAlg->blips[i];
+  for(size_t i=0; i<fBlipAlg.blips.size(); i++){
+    auto& b = fBlipAlg.blips[i];
     
     Double32_t xyz[3];
     Double32_t xyz_err[6];
@@ -167,7 +168,6 @@ void BlipRecoProducer::produce(art::Event & evt)
     
     recob::SpacePoint newpt(xyz,xyz_err,chiSquare);
     SpacePoint_v->emplace_back(newpt);
-    
     
     // Hit associations 
     for(auto& hc : b.clusters ) {
