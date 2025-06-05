@@ -1,0 +1,17 @@
+#include "run_blipana.fcl"
+#include "protodune_tools_dune.fcl"
+#include "services_refactored_pdune.fcl"
+
+services:
+{   
+  TFileService:           { fileName: "hist_blipana.root" }
+  TimeTracker:            @local::dune_time_tracker
+  message:                @local::standard_info
+  @table::protodunevd_refactored_simulation_services
+}
+
+services.BackTrackerService.BackTracker.SimChannelModuleLabel: "tpcrawdecoder:simpleSC"
+
+physics.analyzers.blipana: @local::dune_blipana_pdunevd
+
+

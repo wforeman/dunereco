@@ -79,6 +79,8 @@ namespace blip {
     int   clustid       = -9;
     int   blipid        = -9;
     bool  ismatch       = false;
+    bool  touchTrk      = false;
+    int   touchTrkID    = -9;
     float integralADC    = -999;     // [ADCs] from integral
     float sigmaintegral = -999;
     float sumADC        = -999;     // [ADCs] from sum 
@@ -101,6 +103,7 @@ namespace blip {
     bool    isTruthMatched  = false;
     bool    isMerged        = false;
     bool    isMatched       = false;
+    int     TouchTrkID      = -9;
     int     DeadWireSep     = 99;
     int     Cryostat        = -9;
     int     TPC             = -9;
@@ -150,16 +153,19 @@ namespace blip {
     int       TPC             = -9;         // TPC
     int       NPlanes         = -9;         // Num. matched planes
     int       MaxWireSpan     = -9;         // Maximum span of wires on any plane cluster
+    float     Charge          = -9;         // Charge on calorimetry plane
+    float     ChargeCorr      = -9;         // Charge on calorimetry plane (lifetime corrected)
+    float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
+    float     EnergyCorr      = -999;       // Energy following SCE + lifetime correction
     float     DriftTick       = -999;       // Readout time corrected for trigger [ticks]
     float     Time            = -999;       // Drift time [us]
-    float     Charge          = -9;         // Charge on calorimetry plane
-    float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
-    float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
     float     ProxTrkDist     = -9;         // Distance to cloest track
     int       ProxTrkID       = -9;         // ID of closest track
-    bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
+    bool      inCylinder      = false;      // Is it in a cone/cylinder region?
+    int       TouchTrkID      = -9;         // Track ID that blip touches (ie, delta rays)
     
-    TVector3  Position;                     // 3D position TVector3
+    TVector3  Position;                     // 3D position
+    TVector3  PositionSCE;                  // 3D position following SCE spatial correction
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]

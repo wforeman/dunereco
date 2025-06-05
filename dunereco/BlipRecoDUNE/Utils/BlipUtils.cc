@@ -83,8 +83,6 @@ namespace BlipUtils {
     for(size_t i=0; i<pinfo.size(); i++){
       auto& part = pinfo[i].particle;
       
-      //std::cout<<"Making true blip for "<<part.TrackId()<<" (PDG "<<part.PdgCode()<<", which deposited "<<pinfo[i].depEnergy<<"\n";
-
       // If this is a photon or neutron, don't even bother!
       if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) continue;
 
@@ -97,39 +95,38 @@ namespace BlipUtils {
       blip::TrueBlip tb;
       GrowTrueBlip(pinfo[i],tb);
       if( !tb.Energy ) continue;  
-
+      
       // We want to loop through any contiguous electrons (produced
       // with process "eIoni") and add the energy they deposit into this blip.
       if( part.NumberDaughters() ) {
         for(size_t j=0; j<pinfo.size(); j++){
           simb::MCParticle& p = pinfo[j].particle;
-          std::string pr = p.Process();
+          const std::string& pr = p.Process();
           if( p.PdgCode() != 2112 && (pr == "eIoni" || pr == "muIoni" || pr == "hIoni") ){
             if( IsAncestorOf(p.TrackId(),part.TrackId(),true) ) GrowTrueBlip(pinfo[j],tb);
           }
         }
       }
-      
+     
       // Final check -- ensure there was non-negligible number 
       // of deposted ionization electrons
       if( tb.DepElectrons < 20 ) continue;
 
       // Calculate TPC-specific quantities
-      
+     
       // 'ConvertXToTicks' does not account for time offset of particle (i.e., it
       // assumes particle T0 = 0 with the trigger). We need to correct for that.
       //float tick_offset = (tb.Time>0) ? tb.Time/clockData.TPCClock().TickPeriod() : 0;
-      auto point = geo::Point_t{tb.Position.X(),tb.Position.Y(),tb.Position.Z()};
-      auto const& tpcID   = geom->FindTPCAtPosition(point);
-      auto const& planeID = art::ServiceHandle<geo::Geometry>()->GetBeginPlaneID(tpcID);
-      float tick_calc = (float)detProp.ConvertXToTicks(tb.Position.X(),planeID);
-      tb.DriftTime = tick_calc*clockData.TPCClock().TickPeriod() + clockData.TriggerOffsetTPC();
+      auto const& tpcID   = geom->FindTPCAtPosition(geo::Point_t{tb.Position.X(),tb.Position.Y(),tb.Position.Z()});
+      if( tpcID.isValid ) {
+        auto const& planeID = art::ServiceHandle<geo::Geometry>()->GetBeginPlaneID(tpcID);
+        float tick_calc = (float)detProp.ConvertXToTicks(tb.Position.X(),planeID);
+        tb.DriftTime = tick_calc*clockData.TPCClock().TickPeriod() + clockData.TriggerOffsetTPC();
+        tb.ID = trueblips.size();
+        trueblips.push_back(tb);
+      }
       
-      tb.ID = trueblips.size();
-      trueblips.push_back(tb);
-
     }
-    
   }
   
   
@@ -301,6 +298,7 @@ namespace BlipUtils {
           weightedGOF   += q*hitinfo.gof; 
           qGOF          += q;
         }
+        if( hitinfo.touchTrk ) hc.TouchTrkID   = hitinfo.touchTrkID;
       }//endloop over hits
       
       // mean goodness of fit
@@ -371,7 +369,8 @@ namespace BlipUtils {
     float driftVelocity   = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature()); 
     float tick_to_cm      = clockData.TPCClock().TickPeriod() * driftVelocity;
     
-
+    bool validTouchTrk = true;
+  
     int cryo = hcs[0].Cryostat;
     int tpc  = hcs[0].TPC;
     
@@ -386,7 +385,19 @@ namespace BlipUtils {
     std::vector<TVector3> wirex;
     for(size_t i=0; i<hcs.size(); i++) {
       int pli = hcs[i].Plane;
-      
+
+      // check for track touching clusters that could indicate this is a delta ray blip;
+      // if there is an inconsistency found (i.e., clusters on different planes are touching
+      // different tracks) this status is flagged as invalid.
+      int touchTrkID = hcs[i].TouchTrkID;
+      if( validTouchTrk && touchTrkID >= 0 ) {
+        if(newblip.TouchTrkID < 0 ) newblip.TouchTrkID = touchTrkID;
+        else if (newblip.TouchTrkID != touchTrkID ) {
+          validTouchTrk       = false;
+          newblip.TouchTrkID  = -9;
+        }
+      }     
+
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;
@@ -444,51 +455,20 @@ namespace BlipUtils {
     // (note that the 'time' of each of the hit clusters
     // have already been corrected for plane-to-plane offsets)
     //auto const& tpcID = geo::TPCID(geo::CryostatID(newblip.Cryostat),newblip.TPC);
-    
     newblip.DriftTick= 0;
     newblip.Time = 0;
     newblip.dX = 0;
     float pos_x = 0;
     float vsize = (float)hcs.size();
     for(auto hc : hcs ) {
-      //rawtick     += hc.RawTick / vsize;
-      //auto const& planeID = art::ServiceHandle<geo::Geometry>()->GetBeginPlaneID(tpcID);
-      //auto const& planeID = geo::PlaneID(hc.Cryostat,hc.TPC,hc.Plane);
-      //std::cout<<"   TPC "<<hc.TPC<<"    plane "<<hc.Plane<<"   rawtick "<<hc.RawTick<<"\n";
-      //float this_x = detProp.ConvertTicksToX(hc.RawTick, hc.Plane, hc.TPC, hc.Cryostat);
-      //std::cout<<"   rawtick= "<<hc.RawTick<<", x = "<<this_x<<"\n";
-      //pos_x             += detProp.ConvertTicksToX(hc.RawTick, planeID) / vsize;
       pos_x             += detProp.ConvertTicksToX(hc.RawTick, hc.Plane, hc.TPC, hc.Cryostat) / vsize;
       newblip.DriftTick += hc.Tick / vsize;
       newblip.dX        += ((hc.EndTick-hc.StartTick)*tick_to_cm) / vsize;
-      //newblip.dX  = std::max((float)(hc.EndTick-hc.StartTick)*tick_to_cm, newblip.dX);
     }
    
     newblip.Time = newblip.DriftTick * clockData.TPCClock().TickPeriod();
+    newblip.Position.SetX(pos_x);
     
-
-    //std::cout<<"Blip TPC / tick: "<<newblip.TPC<<"  "<<newblip.DriftTick<<"\n";
-
-      // convert ticks to X
-      //auto const& cryostat= art::ServiceHandle<geo::Geometry>()->Cryostat(geo::CryostatID(newblip.Cryostat));
-      //auto const& tpcgeom = cryostat.TPC(newblip.TPC);
-      //auto const  xyz     = tpcgeom.Plane(0).GetCenter();
-      //int         dirx    = DriftDirX(tpcgeom);
-      //std::cout<<"TPC X0 = "<<xyz.X()<<"\n";
-
-      //float xcalc = xyz.X() + dirx * tick_to_cm * newblip.DriftTick;
-      //std::cout<<"Using calc: "<<xcalc<<"\n";
-     
-     //std::cout<<"Manual calc: "<<xcalc<<", larsoft funct: "<<pos_x<<"\n";
-      newblip.Position.SetX(pos_x);
-      //newblip.Position.SetX( xyz.X() + dirx * tick_to_cm * newblip.Time );
-
-    // this should ALREADY be accounted for at the hit-processing level in BlipRecoAlg,
-    // through the use of GetXTicksOffset...
-    //float offset_ticks = clockData.TriggerOffsetTPC() /  clockData.TPCClock().TickPeriod();
-    //float driftTicks = newblip.Time + clockData.TriggerOffsetTPC();
-    //std::cout<<"blip time "<<newblip.TimeTick<<"  TPC offset "<<clockData.TriggerOffsetTPC()<<"\n";
-   
     //std::cout<<"Made new blip with recoX = "<<newblip.Position.X()<<" and drift time "<<newblip.DriftTime<<" us\n";
     // OK, we made it! Flag as "valid" and ship it out.
     newblip.isValid = true;

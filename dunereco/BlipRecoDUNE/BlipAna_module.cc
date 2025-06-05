@@ -140,7 +140,7 @@ class BlipAnaTreeDataStruct
   // --- True energy deposit info (derived from SimChannels and SimEnergyDeposits) ---
   int   nedeps;                   // number of true localized energy depositions
   int   edep_tpc[kMaxEDeps];      // TPC
-  int   edep_g4id[kMaxEDeps];     // leading G4 index ("part_variable[g4id]")
+  int   edep_partid[kMaxEDeps];   // leading particle index 'i' ("part_variable[i]")
   int   edep_g4trkid[kMaxEDeps];  // leading G4 track ID ("part_trackID")
   float edep_g4qfrac[kMaxEDeps];  // fraction of total charge from lead particle
   bool  edep_isPrimary[kMaxEDeps];// matched to a primary generated particle?
@@ -226,6 +226,9 @@ class BlipAnaTreeDataStruct
   int   clust_blipid[kMaxClusts];       // blip ID for this nlusteer (if it was made into one)
   int   clust_edepid[kMaxClusts];       // true energy dep ID
   bool  clust_ismatch[kMaxClusts];      // was this cluster plane-matched?
+  bool  clust_touchtrk[kMaxClusts];     // does this cluster connect to a trk (like a delta ray)?
+  int   clust_touchtrkid[kMaxClusts];   // connected track ID
+
 
   // --- 3D Blip information ---
   int   nblips;                       // number of blips in event
@@ -233,6 +236,7 @@ class BlipAnaTreeDataStruct
   int   blip_cryo[kMaxBlips];         // blip cryostat ID
   int   blip_tpc[kMaxBlips];          // blip TPC
   int   blip_nplanes[kMaxBlips];      // number of planes matched (2 or 3)
+  float blip_time[kMaxBlips];         // drift time [us]
   float blip_x[kMaxBlips];            // X position [cm]
   float blip_y[kMaxBlips];            // Y position [cm]
   float blip_z[kMaxBlips];            // Z position [cm]
@@ -242,12 +246,15 @@ class BlipAnaTreeDataStruct
   float blip_size[kMaxBlips];         // rough size estimation based on values above
   int   blip_charge[kMaxBlips];       // blip charge at anode [e-]
   float blip_energy[kMaxBlips];       // blip reco energy [MeV]
+  float blip_energyCorr[kMaxBlips];   // blip reco energy (SCE+lifetime corr.) [MeV]
   float blip_energyTrue[kMaxBlips];   // blip truth energy [MeV]
   float blip_yzcorr[kMaxBlips];       // YZ uniformity correction factor (already applied)
   bool  blip_isMC[kMaxBlips];         // blip is matched to MC particle
   int   blip_edepid[kMaxBlips];       // true energy dep ID ("edep_variable[id]")
   float blip_proxtrkdist[kMaxBlips];  // distance to nearest track
   int   blip_proxtrkid[kMaxBlips];    // index of nearest trk
+  bool  blip_touchtrk[kMaxBlips];     // is blip touching track?
+  int   blip_touchtrkid[kMaxBlips];   // track ID of touched track
   bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
   int   blip_clustid[kNplanes][kMaxBlips];// cluster ID per plane
   int   blip_nwires[kNplanes][kMaxBlips]; // nwires per plane
@@ -312,7 +319,7 @@ class BlipAnaTreeDataStruct
     FillWith(edep_dx,      -99999.);
     FillWith(edep_dz,      -99999.);
     FillWith(edep_g4trkid,  -9);
-    FillWith(edep_g4id,     -9);
+    FillWith(edep_partid,     -9);
     FillWith(edep_g4qfrac,  -9);
     FillWith(edep_pdg,   -999);
     FillWith(edep_proc,   -9);
@@ -379,11 +386,14 @@ class BlipAnaTreeDataStruct
     FillWith(clust_edepid,    -9);
     FillWith(clust_blipid,    -9);
     FillWith(clust_ismatch,   false);
+    FillWith(clust_touchtrk,   false);
+    FillWith(clust_touchtrkid,  -9);
     nblips                    = 0;
     FillWith(blip_id,         -9);
     FillWith(blip_cryo,        -9);
     FillWith(blip_tpc,        -9);
     FillWith(blip_nplanes,    -9);
+    FillWith(blip_time,       -99);
     FillWith(blip_x,          -9999);
     FillWith(blip_y,          -9999);
     FillWith(blip_z,          -9999);
@@ -393,10 +403,13 @@ class BlipAnaTreeDataStruct
     FillWith(blip_size,       -9);
     FillWith(blip_charge,     -999);
     FillWith(blip_energy,     -999);
+    FillWith(blip_energyCorr, -999);
     FillWith(blip_energyTrue, -999);
     FillWith(blip_yzcorr,     -9);
     FillWith(blip_proxtrkdist,-99);
     FillWith(blip_proxtrkid,  -9);
+    FillWith(blip_touchtrk,   false);
+    FillWith(blip_touchtrkid,  -9);
     FillWith(blip_incylinder, false);
     FillWith(blip_isMC,       false);
     FillWith(blip_edepid,     -9);
@@ -482,6 +495,8 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("clust_charge",   clust_charge,   "clust_charge[nclusts]/I");
       evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
       evtTree->Branch("clust_ismatch",  clust_ismatch,  "clust_ismatch[nclusts]/O");
+      evtTree->Branch("clust_touchtrk",  clust_touchtrk,  "clust_touchtrk[nclusts]/O");
+      if( saveTrkInfo ) evtTree->Branch("clust_touchtrkid",  clust_touchtrkid,  "clust_touchtrkid[nclusts]/I");
       evtTree->Branch("clust_blipid",   clust_blipid,   "clust_blipid[nclusts]/I");
       if( saveTruthInfo ) evtTree->Branch("clust_edepid",   clust_edepid,   "clust_edepid[nclusts]/I");
     }
@@ -490,6 +505,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_cryo",blip_cryo,"blip_cryo[nblips]/I");
     evtTree->Branch("blip_tpc",blip_tpc,"blip_tpc[nblips]/I");
     evtTree->Branch("blip_nplanes",blip_nplanes,"blip_nplanes[nblips]/I");
+    evtTree->Branch("blip_time",blip_time,"blip_time[nblips]/F");
     evtTree->Branch("blip_x",blip_x,"blip_x[nblips]/F");
     evtTree->Branch("blip_y",blip_y,"blip_y[nblips]/F");
     evtTree->Branch("blip_z",blip_z,"blip_z[nblips]/F");
@@ -498,11 +514,14 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_size",blip_size,"blip_size[nblips]/F");
     evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/I");
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
+    evtTree->Branch("blip_energyCorr",blip_energyCorr,"blip_energyCorr[nblips]/F");
     evtTree->Branch("blip_isMC",blip_isMC,"blip_isMC[nblips]/O");
     //evtTree->Branch("blip_yzcorr",blip_yzcorr,"blip_yzcorr[nblips]/F");
     //evtTree->Branch("blip_incylinder",blip_incylinder,"blip_incylinder[nblips]/O");
     evtTree->Branch("blip_proxtrkdist",blip_proxtrkdist,"blip_proxtrkdist[nblips]/F");
     if( saveTrkInfo ) evtTree->Branch("blip_proxtrkid",blip_proxtrkid,"blip_proxtrkid[nblips]/I");
+    evtTree->Branch("blip_touchtrk",blip_touchtrk,"blip_touchtrk[nblips]/O");
+    if( saveTrkInfo ) evtTree->Branch("blip_touchtrkid",blip_touchtrkid,"blip_touchtrkid[nblips]/I");
     if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],Form("blip_pl%i_nwires[nblips]/I",i));
@@ -539,7 +558,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("part_process",&part_process);
       
       evtTree->Branch("nedeps",&nedeps,"nedeps/I");
-      evtTree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
+      evtTree->Branch("edep_partid",edep_partid,"edep_partid[nedeps]/I"); 
       evtTree->Branch("edep_g4trkid",edep_g4trkid,"edep_g4trkid[nedeps]/I"); 
       evtTree->Branch("edep_g4qfrac",edep_g4qfrac,"edep_g4qfrac[nedeps]/F"); 
       evtTree->Branch("edep_isPrimary",edep_isPrimary,"edep_isPrimary[nedeps]/O"); 
@@ -801,11 +820,11 @@ class BlipAna : public art::EDAnalyzer
       h_clust_qres_vs_q     ->SetOption("colz");
     h_clust_qres_anode      = dir_truth.make<TH1D>("qres_anode","Reco charge vs true charge collected;( reco-true ) / true;Area-normalized entries",200,-1.,1.);
     h_clust_qres_dep        = dir_truth.make<TH1D>("qres_dep","Reco charge vs true charge deposited;( reco-true ) / true;Area-normalized entries",200,-1.,1.);
-    h_qratio_vs_time_sim  = dir_truth.make<TH2D>("qratio_vs_time_sim",";Drift time [#mus]; Q_{anode} / Q_{dep}",44,100,2300, 1000,0.50,1.50);
+    h_qratio_vs_time_sim  = dir_truth.make<TH2D>("qratio_vs_time_sim",";Drift time [#mus]; Q_{anode} / Q_{dep}",58,100,3000, 500,0.50,1.50);
     h_qratio_vs_time_sim  ->SetOption("colz");
 
 
-    float hitMax  = 10000;  int hitBins = 200;
+    float hitMax  = 30000;  int hitBins = 300;
     float ampMax  = 40;    int ampBins = 200;
     float rmsMax  = 10;     int rmsBins = 200;
     float qMax    = 100e3; int qBins   = 200;
@@ -833,7 +852,7 @@ class BlipAna : public art::EDAnalyzer
       h_hitrms_fake[i]  = dir_hits.make<TH1D>(Form("pl%i_hit_rms_fake",i),  Form("Plane %i untracked hits, non-truth-matched (noise);RMS [ADC time-tick]",i),rmsBins,0,rmsMax);
       h_hitrms_mip[i]   = dir_hits.make<TH1D>(Form("pl%i_hit_rms_mip",i),   Form("Plane %i tracked hits (L>20cm);RMS [ADC time-tick]",i),rmsBins,0,rmsMax);
       
-      h_hitratio[i]    = dir_hits.make<TH1D>(Form("pl%i_hit_ratio",i),   Form("Plane %i untracked hits;RMS/amplitude",i),200,0,5);
+      h_hitratio[i]    = dir_hits.make<TH1D>(Form("pl%i_hit_ratio",i),   Form("Plane %i untracked hits;RMS/amplitude",i),200,0,10);
       
       h_hitgof[i]       = dir_hits.make<TH1D>(Form("pl%i_hit_gof",i),       Form("Plane %i untracked hits;log_{10}(GOF/ndf)",i),gofBins,gofMin,gofMax);
       h_hitgof_true[i]  = dir_hits.make<TH1D>(Form("pl%i_hit_gof_true",i),  Form("Plane %i untracked hits, truth-matched;log_{10}(GOF/ndf)",i),gofBins,gofMin,gofMax);
@@ -943,7 +962,16 @@ void BlipAna::analyze(const art::Event& evt)
   //auto const detProp    = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob();
   auto const detProp    = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(evt);
   
-  fData->lifetime = detProp.ElectronLifetime()*1e3; // [ms] --> [us]
+  fData->lifetime = detProp.ElectronLifetime(); // [us]
+  
+  // Tell us what's going on!
+  //if( fNumEvents < 200 || (fNumEvents % 100) == 0 ) {
+  std::cout<<"\n"
+  <<"=========== BlipAna =========================\n"
+  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"; total events processed: "<<fNumEvents<<"\n";
+  std::cout<<"Lifetime "<<fData->lifetime<<"\n";
+  //}
+  
 
   /*
   art::ServiceHandle<calib::LifetimeCalibService> lifetimecalibHandler;
@@ -989,33 +1017,27 @@ void BlipAna::analyze(const art::Event& evt)
   //      used to create 3D blips by plane-matching.
   //
 
-
-
   
   //=======================================
   // Get ProtoDUNE trigger
   //=======================================
   if( fGetRDTimestamp ) {
-    art::ValidHandle<std::vector<raw::RDTimeStamp>> timeStamps 
-      = evt.getValidHandle<std::vector<raw::RDTimeStamp>>("timingrawdecoder:daq");
-    // Check that we have good information
-    if(timeStamps.isValid() && timeStamps->size() == 1){
-      // Access the trigger information. Beam trigger flag = 0xc
-      const raw::RDTimeStamp& timeStamp = timeStamps->at(0);
-      fData->trigcode = timeStamp.GetFlags();
-      h_triggercodes->Fill(fData->trigcode);
+    try {
+      art::ValidHandle<std::vector<raw::RDTimeStamp>> timeStamps 
+        = evt.getValidHandle<std::vector<raw::RDTimeStamp>>("timingrawdecoder:daq");
+      // Check that we have good information
+      if(timeStamps.isValid() && timeStamps->size() == 1){
+        // Access the trigger information. Beam trigger flag = 0xc
+        const raw::RDTimeStamp& timeStamp = timeStamps->at(0);
+        fData->trigcode = timeStamp.GetFlags();
+        h_triggercodes->Fill(fData->trigcode);
+      }
+      std::cout<<"Trigger  "<<fData->trigcode<<"\n";
+    }
+    catch (...) {
     }
   }
-  
-  // Tell us what's going on!
-  //if( fNumEvents < 200 || (fNumEvents % 100) == 0 ) {
-  std::cout<<"\n"
-  <<"=========== BlipAna =========================\n"
-  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"; total events processed: "<<fNumEvents<<"\n";
-  std::cout<<"Lifetime "<<fData->lifetime<<"\n";
-  if( fGetRDTimestamp ) 
-  std::cout<<"Trigger  "<<fData->trigcode<<"\n";
-  //}
+ 
 
 
   //=======================================
@@ -1048,6 +1070,11 @@ void BlipAna::analyze(const art::Event& evt)
  
   // flag this data as MC
   fIsMC = ( plist.size()>0 );
+  
+  std::cout<<" - found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n";
+  std::cout<<" - found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n"; 
+  std::cout<<" - found "<<plist.size()<<" MCParticles\n";
+  std::cout<<" - reconstructed "<<fBlipAlg.blips.size()<<" 3D blips\n";
 
   //====================================
   // Keep tabs on total energy, charge,
@@ -1132,7 +1159,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_tdrift[i]   = trueblip.DriftTime;
       fData->edep_pdg[i]      = trueblip.LeadG4PDG;
       fData->edep_g4trkid[i]  = trueblip.LeadG4ID;
-      fData->edep_g4id[i]     = trueblip.LeadG4Index;
+      fData->edep_partid[i]   = trueblip.LeadG4Index;
       fData->edep_g4qfrac[i]  = trueblip.G4ChargeMap[trueblip.LeadG4ID] / trueblip.DepElectrons;
       fData->edep_isPrimary[i]= (pPart->Process() == "primary");
       fData->edep_dz[i]       = fabs(pPart->EndPosition()[2]-pPart->Vz());
@@ -1469,6 +1496,8 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_starttime[i] = Truncate(clust.StartTick, 0.1);
     fData->clust_endtime[i]   = Truncate(clust.EndTick,   0.1);
     fData->clust_ismatch[i]   = clust.isMatched;
+    fData->clust_touchtrk[i]  = (clust.TouchTrkID >= 0 );
+    fData->clust_touchtrkid[i]= clust.TouchTrkID;
     fData->clust_blipid[i]    = clust.BlipID;
     fData->clust_edepid[i]    = clust.EdepID;
 
@@ -1520,6 +1549,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_cryo[i]       = blp.Cryostat;
     fData->blip_tpc[i]        = blp.TPC;
     fData->blip_nplanes[i]    = blp.NPlanes;
+    fData->blip_time[i]       = blp.Time;
     fData->blip_x[i]          = blp.Position.X();
     fData->blip_y[i]          = blp.Position.Y();
     fData->blip_z[i]          = blp.Position.Z();
@@ -1530,8 +1560,11 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_proxtrkdist[i]= blp.ProxTrkDist;
     fData->blip_proxtrkid[i]  = blp.ProxTrkID;
     fData->blip_incylinder[i] = blp.inCylinder;
+    fData->blip_touchtrk[i]   = (blp.TouchTrkID >= 0 );
+    fData->blip_touchtrkid[i] = blp.TouchTrkID;
     fData->blip_charge[i]     = blp.Charge;
     fData->blip_energy[i]     = blp.Energy;
+    fData->blip_energyCorr[i] = blp.EnergyCorr;
     //fData->blip_yzcorr[i]     = tpcCalib.YZdqdxCorrection(fCaloPlane,blp.Position.Y(),blp.Position.Z());
     
     // Fill cluster charge 2D histograms
@@ -1614,6 +1647,7 @@ void BlipAna::analyze(const art::Event& evt)
   if( fIsMC ) {
     h_nblips_tm->Fill(nblips_matched);
     if( total_numElectrons        ) h_blip_qcomp      ->Fill(true_blip_charge      / total_numElectrons     );
+    std::cout<<"   (truth-matched blips: "<<nblips_matched<<")\n";
   }
   
   if( fDebugMode ) {

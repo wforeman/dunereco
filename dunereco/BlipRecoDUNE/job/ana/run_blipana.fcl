@@ -1,15 +1,13 @@
-#include "geometry_dune.fcl"
 #include "messageservice.fcl"
 #include "services_dune.fcl"
-#include "calorimetry_dune10kt.fcl"
 #include "blipreco_configs.fcl"
+#include "blipana_configs.fcl"
 
 process_name: BlipAna
 
-
 services:
 {
-  TFileService:         { fileName: "BlipAna_tree.root" }
+  TFileService:         { fileName: "hist_%p_%tc.root" }
   #TimeTracker:            {}
   TimeTracker:            @local::dune_time_tracker
   MemoryTracker:          @local::dune_memory_tracker

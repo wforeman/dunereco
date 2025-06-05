@@ -1,0 +1,39 @@
+
+# ===============================================
+# Main BlipAna settings (TTree + diagnostic hists)
+dune_blipana:
+{
+  module_type:        "BlipAna"
+  BlipAlg:            @local::dune_blipalg
+  SaveTruthInfo:      true
+  SaveTrkInfo:        true
+  SaveHitInfo:        false
+  SaveClustInfo:      true
+  DebugMode:          false
+}
+
+# Configurations for DUNE-10kt 1x2x6
+dune_blipana_dune10kt_1x2x6:                  @local::dune_blipana
+dune_blipana_dune10kt_1x2x6.BlipAlg:          @local::dune_blipalg_dune10kt
+dune_blipana_dune10kt_1x2x6.PlotBlipMult:     [ 100, 0, 500     ]
+dune_blipana_dune10kt_1x2x6.PlotBlipYBounds:  [ 180, -900, 900  ]
+dune_blipana_dune10kt_1x2x6.PlotBlipZBounds:  [ 180, -200, 1600 ]
+dune_blipana_dune10kt_1x2x6.BlipAlg.DebugMode:  true
+
+# Configurations for ProtoDUNE-SP
+dune_blipana_pdunesp:                 @local::dune_blipana
+dune_blipana_pdunesp.BlipAlg:         @local::dune_blipalg_pdunesp
+dune_blipana_pdunesp.GetRDTimestamp:  true
+dune_blipana_pdunesp.PlotBlipMult:     [ 150, 0, 1500    ]
+dune_blipana_pdunesp.PlotBlipYBounds:  [ 80, -100, 700  ]
+dune_blipana_pdunesp.PlotBlipZBounds:  [ 80, -50, 750 ]
+dune_blipana_pdunesp.BlipAlg.DebugMode: true
+
+# Configurations for ProtoDUNE-HD (inherit from SP)
+dune_blipana_pdunehd:                 @local::dune_blipana_pdunesp
+dune_blipana_pdunehd.BlipAlg:         @local::dune_blipalg_pdunehd
+dune_blipana_pdunehd.GetRDTimestamp:  false
+
+# Configurations for ProtoDUNE-VD
+dune_blipana_pdunevd:                 @local::dune_blipana
+dune_blipana_pdunevd.BlipAlg:         @local::dune_blipalg_pdunevd

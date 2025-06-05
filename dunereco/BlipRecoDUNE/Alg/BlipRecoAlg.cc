@@ -50,9 +50,9 @@ namespace blip {
        
         std::cout<<"============== CRYOSTAT "<<cstat<<" / TPC "<<tpc<<"=========================\n";
         printf("Front face center: (%f,%f,%f)\n",tpcffcenter.X(),tpcffcenter.Y(),tpcffcenter.Z());
-        std::cout<<"DetHalfWidth: "<<halfwidth<<" cm, halfheight: "<<halfheight<<" cm, length: "<<length<<"\n";
-        std::cout<<"Trigger time: "<<clockData.TriggerTime()<<"\n";
-        std::cout<<"Tick period : "<<kTickPeriod<<"\n";
+        std::cout<<"DetHalfWidth : "<<halfwidth<<" cm, halfheight: "<<halfheight<<" cm, length: "<<length<<"\n";
+        std::cout<<"Trigger time : "<<clockData.TriggerTime()<<"\n";
+        std::cout<<"Tick period  : "<<kTickPeriod<<"\n";
 
         // Loop planes in TPC 'tpc'
         for(size_t pl=0; pl<fGeom.Nplanes(tpcid); pl++){
@@ -185,7 +185,7 @@ namespace blip {
         if( i == fCaloPlane ) continue;
         h_clust_overlap[i]    = hdir.make<TH1D>(Form("p%i_clust_overlap",i),   Form("Plane %i clusters;Overlap fraction",i),101,0,1.01);
         h_clust_dtfrac[i]     = hdir.make<TH1D>(Form("p%i_clust_dtfrac",i),    Form("Plane %i clusters;Charge-weighted mean dT/RMS",i),150,-1.5,1.5);
-        h_clust_dt[i]         = hdir.make<TH1D>(Form("p%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),200,-10,10);
+        h_clust_dt[i]         = hdir.make<TH1D>(Form("p%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),300,-15,15);
         h_clust_q[i]     = hdir.make<TH2D>(Form("p%i_clust_charge",i),  
           Form("Pre-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3} e-]",fCaloPlane,i),
           qbins,0,qmax,qbins,0,qmax);
@@ -193,7 +193,7 @@ namespace blip {
         h_clust_qratio[i]   = hdir.make<TH1D>(Form("p%i_clust_qratio",i),        Form("Plane %i clusters;Charge ratio",i),100,0,1.01);
         h_clust_score[i]    = hdir.make<TH1D>(Form("p%i_clust_matchscore",i),   Form("Plane %i clusters;Match score",i),101,0,1.01);
         h_clust_mc_overlap[i]    = hdir.make<TH1D>(Form("p%i_clust_mc_overlap",i),   Form("Plane %i truth-matched clusters;Overlap fraction",i),101,0,1.01);
-        h_clust_mc_dt[i]         = hdir.make<TH1D>(Form("p%i_clust_mc_dt",i),        Form("Plane %i truth-matched clusters;dT [ticks]",i),200,-10,10);
+        h_clust_mc_dt[i]         = hdir.make<TH1D>(Form("p%i_clust_mc_dt",i),        Form("Plane %i truth-matched clusters;dT [ticks]",i),300,-15,15);
         h_clust_mc_dtfrac[i]     = hdir.make<TH1D>(Form("p%i_clust_mc_dtfrac",i),    Form("Plane %i truth-matched clusters;Charge-weighted mean dT/RMS",i),120,-3,3);
         h_clust_mc_q[i]     = hdir.make<TH2D>(Form("p%i_clust_mc_charge",i),  
           Form("Pre-cut, truth-matched clusters;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3} e-]",fCaloPlane,i),
@@ -274,7 +274,7 @@ namespace blip {
     
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
-    fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  false);
+    fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  true);
     fSCECorr            = pset.get<bool>          ("SCECorrection",       false);
     fYZUniformityCorr   = pset.get<bool>          ("YZUniformityCorrection",true);
     fModBoxA            = pset.get<float>         ("ModBoxA",             0.93);
@@ -329,7 +329,7 @@ namespace blip {
     //auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
 
     // -- lifetime
-    kLifetime = detProp.ElectronLifetime()*1e3;
+    kLifetime = detProp.ElectronLifetime(); // [us]
     if( fDetector == "pdunesp" && evt.isRealData() ) {
       // Electron lifetime from database calibration service provider
       // NOTE: this doesn't work anymore!
@@ -471,7 +471,7 @@ namespace blip {
     std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
     for(size_t i = 0; i<plist.size(); i++) 
       map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
-    
+   
 
     //======================================================
     // Use SimChannels to make a map of the collected charge
@@ -525,7 +525,6 @@ namespace blip {
       }
     }
     
-   
 
     //==================================================
     // Use G4 information to determine the "true" blips in this event.
@@ -540,6 +539,8 @@ namespace blip {
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
     }
+    
+    if( fDebug ) std::cout<<"Made "<<trueblips.size()<<" true edeps\n";
 
 
     //=======================================
@@ -564,7 +565,6 @@ namespace blip {
       int   tpc     = wireid.TPC;
       int   plane   = wireid.Plane;
       int   wire    = wireid.Wire;
-      
       hitinfo[i].hitid        = i;
       hitinfo[i].cryo         = cstat;
       hitinfo[i].tpc          = tpc;
@@ -579,10 +579,7 @@ namespace blip {
       hitinfo[i].charge       = fCaloAlg.ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
       hitinfo[i].peakTick     = thisHit->PeakTime();
-      hitinfo[i].driftTick    = thisHit->PeakTime()-kXTicksOffsets[cstat][tpc][plane]; //detProp.GetXTicksOffset(wireid);
-      //hitinfo[i].driftTime    = thisHit->PeakTime()-detProp.GetXTicksOffset(wireid);
-
-      //std::cout<<"Plane "<<plane<<"   correction "<<detProp.GetXTicksOffset(wireid)<<"\n";
+      hitinfo[i].driftTick    = thisHit->PeakTime()-kXTicksOffsets[cstat][tpc][plane];
 
       if( plist.size() ) {
         int truthid       = -9;
@@ -754,6 +751,15 @@ namespace blip {
                   float rms_sum = (hitinfo[hii].rms + hitinfo[hj].rms);
                   if( fabs(t1-t2) > fHitClustWidthFact * rms_sum ) continue;
                   
+                  // if the hit we are checking is touching a track
+                  // take note of this so we can encode this info into
+                  // the cluster later on for delta-ray ID
+                  if( hitIsTracked[hj] ) {
+                    hitinfo[hii].touchTrk   = true;
+                    hitinfo[hii].touchTrkID = hitinfo[hj].trkid;
+                    continue;
+                  }
+ 
                   hitinfoVec.push_back(hitinfo[hj]);
                   startWire = std::min( hitinfo[hj].wire, startWire );
                   endWire   = std::max( hitinfo[hj].wire, endWire );
@@ -859,8 +865,7 @@ namespace blip {
       }//loop over TPCs
     }//loop over cryostats
     //std::cout<<"All done with clustering\n";
-     
-
+    if( fDebug ) std::cout<<"Clustering completed: made "<<hitclust.size()<<"\n";
 
     // =============================================================================
     // Plane matching and 3D blip formation
@@ -1096,7 +1101,17 @@ namespace blip {
             }//endloop over trks
            
             if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
-            
+          
+            // In the case that a cluster appeared to be touching a track in 
+            // one of the 3 views, but after 3D evaluation is found to be positioned
+            // far away from that track, we must update the "TouchTrk" status.
+            if( (newBlip.ProxTrkID != newBlip.TouchTrkID )
+            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dX ) 
+            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dYZ ) ) 
+            ) {
+              newBlip.TouchTrkID = -9;
+            }
+
             // ----------------------------------------
             // if we made it this far, the blip is good!
             // associate this blip with the hits and clusters within it
@@ -1132,75 +1147,89 @@ namespace blip {
 
     
     //*************************************************************************
-    // Loop over the vector of blips and perform calorimetry calculations
+    // Loop over the vector of blips and perform calorimetry calculation.
+    // Here we fill:
+    //   blip.Charge
+    //   blip.ChargeCorr (lifetime correction)
+    //   blip.PositionSCE (SCE corrections)
+    //   blip.Energy
+    //   blip.EnergyCorr (lifetime + SCE corrections)
     //*************************************************************************
     for(size_t i=0; i<blips.size(); i++){
       auto& blip = blips[i];
-      blip.Charge = blip.clusters[fCaloPlane].Charge;
+      blip.Charge     = blip.clusters[fCaloPlane].Charge;
+      blip.ChargeCorr = blip.Charge;
+
+      float Efield    = kNominalEfield;
+      float EfieldSCE = kNominalEfield;
       
-      // ***** MICROBOONE ****************************
-      // --- YZ uniformity correction ---
-      // Correct for charge-collection non-uniformity based on Y/Z position
-      // (taken from CalibrationdEdx_module)
+      // ----------------------------------------------------
+      // Use designated calorimetry plane - defaults to collection. Here we also correct
+      // for YZ non-uniformity across the wireplane, which is pretty standard (procedure 
+      // taken from CalibrationdEdx_module).
+      blip.Charge = blip.clusters[fCaloPlane].Charge;
+      // **NOTE: non-uniformity correction disabled for now in DUNE/pDUNE**
       //if( fYZUniformityCorr ) blip.Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,blip.Position.Y(),blip.Position.Z());
-      // *********************************************
 
       // ================================================================================
       // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
       // like associating blip with some nearby track/shower and using its tagged T0)
-      //    Method 1: Assume a dE/dx for electrons, use that + local E-field to get recomb.
-      //    Method 2: ESTAR lookup table method ala ArgoNeuT
+      //    Method 1: Assume a dE/dx (fcl), use that + local E-field to calculate recombination.
+      //    Method 2: ESTAR lookup table method ala ArgoNeuT (TODO)
       // ================================================================================
-      float depEl   = std::max(0.0,(double)blip.Charge);
-      float Efield  = kNominalEfield;
 
       // --- Lifetime correction ---
-      // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
-      // apply this correction can do more harm than good! Note lifetime is in
-      // units of 'ms', not microseconds, hence the 1E-3 conversion factor.
-      if( fLifetimeCorr && blip.Time>0 ) depEl *= exp( -1.*blip.Time/kLifetime );
-      
-      // SCE test
-      //geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point,blip.TPC);
-      //std::cout<<"Blip at XYZ "<<blip.Position.X()<<", "<<blip.Position.Y()<<", "<<blip.Position.Z()<<"\n";
-      //std::cout<<"SCE dx offset here: "<< loc_offset.X() <<"\n";
-      //std::cout<<"SCE dz offset here: "<< loc_offset.Z() <<"\n";
-
+      // Note: Without knowing real T0 of a blip, this correction is meaningless.
+      //       Units of 'ms', not microseconds, hence the 1E-3 conversion factor.
+      if( fLifetimeCorr && blip.Time>0 ) {
+        float t = blip.Time; // [us]
+        float tau = kLifetime; // [us]
+        blip.ChargeCorr = std::max(0.,(double)blip.Charge) * exp( t / tau );
+      }
 
       // --- SCE corrections ---
+      geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
       if( fSCECorr ) {
-      
-        geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
+
+        if( blip.ChargeCorr < 0 ) blip.ChargeCorr = blip.Charge;
 
         // 1) Spatial correction
+        //      TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
+        //            For example, maybe re-assign to center of drift volume?
         if( SCE_provider->EnableCalSpatialSCE() ) {
-          // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
-          //       For example, maybe re-assign to center of drift volume?
-          geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point,blip.TPC);
+          geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point, 0);
           point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
+          blip.PositionSCE.SetXYZ(point.X(),point.Y(),point.Z());
         }
-      
+
         // 2) E-field correction
         //
-        // notes:
+        //   notes:
         //   - GetEfieldOffsets(xyz) and GetCalEfieldOffsets(xyz) return the exact
         //     same underlying E-field offset map; the only difference is the former
         //     is used in the simulation, and the latter in reconstruction (??).
         //   - The SpaceCharge service must have 'EnableCorSCE' and 'EnableCalEfieldSCE'
         //     enabled in order to use GetCalEfieldOffsets
-        //   - Blips may appear to be outside the active volume if T0-corrections aren't 
-        //     applied to the reconstructed 'X'. SCE map should return (0,0,0) in this case.
+        //   - Blips can have negative 'X' if the T0 correction isn't applied. Obviously 
+        //     the SCE map will return (0,0,0) for these points. Beware!
         if( SCE_provider->EnableCalEfieldSCE() ) {
-          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point,blip.TPC); 
-          Efield = detProp.Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
+          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point, 0);
+          EfieldSCE = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
         }
 
       }
-      
-      // METHOD 1
-      float recomb  = ModBoxRecomb(fCalodEdx,Efield);
-      blip.Energy   = depEl * (1./recomb) * kWion;
-      
+
+      // METHOD 1 - assume a recombination
+      float recomb    = ModBoxRecomb(fCalodEdx,Efield);
+      float recombSCE = ModBoxRecomb(fCalodEdx,EfieldSCE);
+
+      // nominal case + SCE/lifetime corrected
+      blip.Energy     = blip.Charge     * (1./recomb)    * kWion;
+      blip.EnergyCorr = blip.ChargeCorr * (1./recombSCE) * kWion;
+
+      //h_recomb        ->Fill(recomb);
+      //h_recombSCE     ->Fill(recombSCE);
+ 
       // ================================================
       // Save the true blip into the object;
       // at least one cluster needs to match.
@@ -1215,8 +1244,8 @@ namespace blip {
         blip.truth = trueblips[*set_edepids.begin()];
     
     }//endloop over blip vector
-
-    if( fDebug ) std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n"; 
+    
+    if( fDebug) std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n"; 
 
   }//End main blip reco function
  
