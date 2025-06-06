@@ -13,7 +13,7 @@ typedef std::map<int,float>     mif_t;
 const int kNplanes    = 3; 
 const int kNTPCs      = 24;
 
-namespace blip {
+namespace blipobj {
   
   //###################################################
   //  Data structures
@@ -120,15 +120,6 @@ namespace blip {
     float   StartTick       = -999;
     float   EndTick         = -999;
     float   Tickspan        = -999;
-    
-    //float   Time            = -999;
-
-    //float   TimeTick        = -999;
-    //float   StartHitTime    = -999;
-    //float   EndHitTime      = -999;
-    //float   StartTime       = -999;
-    //float   EndTime         = -999;
-    //float   Timespan        = -999;
     float   RMS             = -999;
     int     StartWire       = -999;
     int     EndWire         = -999;
@@ -171,10 +162,10 @@ namespace blip {
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
 
     // Plane/cluster-specific information
-    blip::HitClust clusters[kNplanes];
+    blipobj::HitClust clusters[kNplanes];
     
     // Truth-matched energy deposition
-    blip::TrueBlip truth;
+    blipobj::TrueBlip truth;
     
     // Prototype getter functions
     double X() { return Position.X(); }

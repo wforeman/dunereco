@@ -614,10 +614,10 @@ class BlipAna : public art::EDAnalyzer
 
   private:
   void    PrintParticleInfo(size_t);
-  void    PrintTrueBlipInfo(const blip::TrueBlip&);
-  void    PrintClusterInfo(const blip::HitClust&);
-  void    PrintHitInfo(const blip::HitInfo&);
-  void    PrintBlipInfo(const blip::Blip&);
+  void    PrintTrueBlipInfo(const blipobj::TrueBlip&);
+  void    PrintClusterInfo(const blipobj::HitClust&);
+  void    PrintHitInfo(const blipobj::HitInfo&);
+  void    PrintBlipInfo(const blipobj::Blip&);
   float   Truncate(float, double = 0.1);
 
   // --- Data and calo objects ---
@@ -1003,7 +1003,7 @@ void BlipAna::analyze(const art::Event& evt)
   //  We can then retrieve these blips and incorporate them into
   //  our analysis however we like:
   //
-  //    std::vector<blip::Blip> blipVec = fBlipAlg.blips;
+  //    std::vector<blipobj::Blip> blipVec = fBlipAlg.blips;
   //
   //  The alg also creates collections of 'HitInfo' and 'HitClust'
   //  structs used in the blip reconstruction process, which can be
@@ -1090,7 +1090,7 @@ void BlipAna::analyze(const art::Event& evt)
   std::map<int,int> map_g4trkid_index;
   if( plist.size() ) {
     
-    std::vector<blip::ParticleInfo>& pinfo = fBlipAlg.pinfo;
+    std::vector<blipobj::ParticleInfo>& pinfo = fBlipAlg.pinfo;
     
     // Loop through the MCParticles
     if( fDebugMode ) std::cout<<"\nLooping over G4 MCParticles: \n";
@@ -1141,7 +1141,7 @@ void BlipAna::analyze(const art::Event& evt)
   //====================================
   // Save TrueBlip information
   //====================================
-  std::vector<blip::TrueBlip>& trueblips = fBlipAlg.trueblips;
+  std::vector<blipobj::TrueBlip>& trueblips = fBlipAlg.trueblips;
   fData->nedeps = (int)trueblips.size();
   if( trueblips.size() ) {
     if( fDebugMode ) std::cout<<"\nLooping over true blips:\n";
@@ -1757,7 +1757,7 @@ void BlipAna::PrintParticleInfo(size_t i){
   ); 
 }
 
-void BlipAna::PrintTrueBlipInfo(const blip::TrueBlip& tb){
+void BlipAna::PrintTrueBlipInfo(const blipobj::TrueBlip& tb){
   printf("  edepID: %5i  G4ID: %-6i PDG: %-10i XYZ: %7.2f, %7.2f, %7.2f, %8.3f MeV, %8i e- deposited, %8i e- @anode,  %12s\n",
    tb.ID,
    tb.LeadG4ID,
@@ -1772,7 +1772,7 @@ void BlipAna::PrintTrueBlipInfo(const blip::TrueBlip& tb){
   ); 
 }
 
-void BlipAna::PrintHitInfo(const blip::HitInfo& hi){
+void BlipAna::PrintHitInfo(const blipobj::HitInfo& hi){
   printf("  hitID: %4i, TPC: %i, plane: %i, driftTicks: %7.2f, leadWire: %3i, G4ID: %4i, recoTrack: %4i\n",
     hi.hitid,
     hi.tpc,
@@ -1784,7 +1784,7 @@ void BlipAna::PrintHitInfo(const blip::HitInfo& hi){
   );
 }
 
-void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
+void BlipAna::PrintClusterInfo(const blipobj::HitClust& hc){
   printf("  clustID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i\n",
     hc.ID,
     hc.TPC,
@@ -1800,7 +1800,7 @@ void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
   );
 }
 
-void BlipAna::PrintBlipInfo(const blip::Blip& bl){
+void BlipAna::PrintBlipInfo(const blipobj::Blip& bl){
   printf("  blipID: %4i, TPC: %i, charge: %8.0i,  recoEnergy: %8.3f MeV, XYZ: %6.1f, %6.1f, %6.1f,   EdepID: %i\n",
   bl.ID,
   bl.TPC,

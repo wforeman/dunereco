@@ -93,11 +93,11 @@ namespace blip {
     void    PrintConfig();
     
     // TO-DO: make these private and create getters instead
-    std::vector<blip::HitInfo>      hitinfo;
-    std::vector<blip::HitClust>     hitclust;
-    std::vector<blip::Blip>         blips;  
-    std::vector<blip::TrueBlip>     trueblips;
-    std::vector<blip::ParticleInfo> pinfo;
+    std::vector<blipobj::HitInfo>      hitinfo;
+    std::vector<blipobj::HitClust>     hitclust;
+    std::vector<blipobj::Blip>         blips;  
+    std::vector<blipobj::TrueBlip>     trueblips;
+    std::vector<blipobj::ParticleInfo> pinfo;
 
     float   ModBoxRecomb(float,float);
     float   dQdx_to_dEdx(float,float);

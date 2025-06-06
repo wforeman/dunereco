@@ -295,7 +295,7 @@ namespace blip {
   // Main reconstruction procedure.
   //
   // This function does EVERYTHING. The resulting collections of 
-  // blip::HitClusts and blip::Blips can then be retrieved after
+  // blipobj::HitClusts and blipobj::Blips can then be retrieved after
   // this function is run.
   //###########################################################
   void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
@@ -715,7 +715,7 @@ namespace blip {
             if( !hitIsGood[hi] || hitIsClustered[hi] ) continue; 
             
             // initialize a new cluster with this hit as seed
-            std::vector<blip::HitInfo> hitinfoVec;
+            std::vector<blipobj::HitInfo> hitinfoVec;
             std::set<int> hitIDs;
             
             hitinfoVec    .push_back(hitinfo[hi]);
@@ -782,7 +782,7 @@ namespace blip {
             }
             
 
-            blip::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
+            blipobj::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
             float span = hc.EndTick - hc.StartTick;
             h_clust_nwires->Fill(hc.NWires);
             h_clust_timespan->Fill(span);
@@ -901,7 +901,7 @@ namespace blip {
           auto& hcA = hitclust[i];
 
           // initiate hit-cluster group
-          std::vector<blip::HitClust> hcGroup;
+          std::vector<blipobj::HitClust> hcGroup;
           hcGroup.push_back(hcA);
 
           // for each of the other planes, make a map of potential matches
@@ -1048,7 +1048,7 @@ namespace blip {
 
             // ----------------------------------------
             // make our new blip, but if it isn't valid, forget it and move on
-            blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup,detProp,clockData);
+            blipobj::Blip newBlip = BlipUtils::MakeBlip(hcGroup,detProp,clockData);
             if( !newBlip.isValid ) continue;
 
             // ---------------------------------------

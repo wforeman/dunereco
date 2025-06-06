@@ -80,7 +80,6 @@ BlipRecoProducer::BlipRecoProducer(fhicl::ParameterSet const & pset)
 {
   // Read in fcl parameters for blip reco alg
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
-  //fBlipAlg        = new blip::BlipRecoAlg( pset_blipalg );
   
   fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer");
  
@@ -88,9 +87,9 @@ BlipRecoProducer::BlipRecoProducer(fhicl::ParameterSet const & pset)
   produces< std::vector<  recob::SpacePoint > >();
   produces< art::Assns <  recob::Hit, recob::SpacePoint> >();
   
-  //produces< std::vector<  blip::Blip > >();
-  //produces< art::Assns <  recob::SpacePoint,  blip::Blip> >();
-  //produces< art::Assns <  recob::Hit,         blip::Blip> >();
+  //produces< std::vector<  blipobj::Blip > >();
+  //produces< art::Assns <  recob::SpacePoint,  blipobj::Blip> >();
+  //produces< art::Assns <  recob::Hit,         blipobj::Blip> >();
 
   //produces< std::vector<  recob::Cluster    > >();
   //produces< art::Assns <  recob::Cluster,   recob::SpacePoint> >();
@@ -117,7 +116,7 @@ void BlipRecoProducer::produce(art::Event & evt)
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
   std::unique_ptr< art::Assns <recob::Hit, recob::SpacePoint> >  assn_hit_sps_v(new art::Assns<recob::Hit,recob::SpacePoint> );
 
-  //std::unique_ptr< std::vector< blip::Blip > > Blip_v(new std::vector<blip::Blip>);
+  //std::unique_ptr< std::vector< blipobj::Blip > > Blip_v(new std::vector<blipobj::Blip>);
   
   //============================================
   // Get hits from input module
@@ -135,19 +134,19 @@ void BlipRecoProducer::produce(art::Event & evt)
   
   
   //===========================================
-  // Make blip::Blips
+  // Make blipobj::Blips
   //===========================================
   /*
   for(size_t i=0; i<fBlipAlg->blips.size(); i++){
     auto& b = fBlipAlg->blips[i];
-    blip::Blip nb = b;
+    blipobj::Blip nb = b;
     Blip_v->emplace_back(nb);
   }
   */
   
   
   //===========================================
-  // Make recob::SpacePoints out of the blip::Blips
+  // Make recob::SpacePoints out of the blipobj::Blips
   //===========================================
   for(size_t i=0; i<fBlipAlg.blips.size(); i++){
     auto& b = fBlipAlg.blips[i];

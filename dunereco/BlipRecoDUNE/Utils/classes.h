@@ -24,6 +24,6 @@
 // Do not include the objects they contain internally.
 //
 
-template class art::Assns<recob::Hit,blip::Blip,void>;
-template class art::Wrapper<std::vector<blip::Blip> >;
-template class std::vector<blip::Blip>;
+template class art::Assns<recob::Hit,blipobj::Blip,void>;
+template class art::Wrapper<std::vector<blipobj::Blip> >;
+template class std::vector<blipobj::Blip>;
