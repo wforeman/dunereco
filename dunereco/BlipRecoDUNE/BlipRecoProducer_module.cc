@@ -82,19 +82,15 @@ BlipRecoProducer::BlipRecoProducer(fhicl::ParameterSet const & pset)
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
   
   fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer");
- 
-  // declare what we're going to produce
+  
+  // produce spacepoints and 'hit <--> spacepoint' associations
   produces< std::vector<  recob::SpacePoint > >();
   produces< art::Assns <  recob::Hit, recob::SpacePoint> >();
-  
-  //produces< std::vector<  blipobj::Blip > >();
-  //produces< art::Assns <  recob::SpacePoint,  blipobj::Blip> >();
-  //produces< art::Assns <  recob::Hit,         blipobj::Blip> >();
 
-  //produces< std::vector<  recob::Cluster    > >();
-  //produces< art::Assns <  recob::Cluster,   recob::SpacePoint> >();
-  //produces< art::Assns <  recob::Hit,       recob::Cluster> >();
-  
+  // produce blips and 'hit <--> blip' associations
+  produces< std::vector<  blipobj::Blip > >();
+  //produces< art::Assns <  recob::Hit, blipobj::Blip> >();  
+
 }
 
 
@@ -106,8 +102,10 @@ void BlipRecoProducer::produce(art::Event & evt)
 {
   
   std::cout<<"\n"
-  <<"******************** BlipReco ****************************\n"
-  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+  <<"------- BlipRecoProducer --------------\n"
+  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n"; 
+ 
+  int blipCount = 0;
 
   //============================================
   // Make unique pointers to the vectors of objects 
@@ -115,8 +113,8 @@ void BlipRecoProducer::produce(art::Event & evt)
   //============================================
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
   std::unique_ptr< art::Assns <recob::Hit, recob::SpacePoint> >  assn_hit_sps_v(new art::Assns<recob::Hit,recob::SpacePoint> );
-
-  //std::unique_ptr< std::vector< blipobj::Blip > > Blip_v(new std::vector<blipobj::Blip>);
+  std::unique_ptr< std::vector< blipobj::Blip > > Blip_v(new std::vector<blipobj::Blip>);
+  //std::unique_ptr< art::Assns <recob::Hit, blipobj::Blip> >  assn_hit_blip_v(new art::Assns<recob::Hit,blipobj::Blip> );
   
   //============================================
   // Get hits from input module
@@ -151,6 +149,11 @@ void BlipRecoProducer::produce(art::Event & evt)
   for(size_t i=0; i<fBlipAlg.blips.size(); i++){
     auto& b = fBlipAlg.blips[i];
     
+    if( !b.isValid ) continue;
+
+    Blip_v->emplace_back(b);
+    blipCount++;
+
     Double32_t xyz[3];
     Double32_t xyz_err[6];
     Double32_t chiSquare = 0;
@@ -173,6 +176,7 @@ void BlipRecoProducer::produce(art::Event & evt)
       for(auto& ihit : hc.HitIDs ) {
         auto& hitptr = hitlist[ihit];
         util::CreateAssn(*this, evt, *SpacePoint_v, hitptr, *assn_hit_sps_v);
+        //util::CreateAssn(*this, evt, *Blip_v,       hitptr, *assn_hit_blip_v);
       }
     }
   
@@ -184,7 +188,12 @@ void BlipRecoProducer::produce(art::Event & evt)
   evt.put(std::move(SpacePoint_v));
   evt.put(std::move(assn_hit_sps_v));
   
-  //evt.put(std::move(Blip_v));
+  evt.put(std::move(Blip_v));
+  //evt.put(std::move(assn_hit_blip_v));
+
+  std::cout
+  <<"Added "<<blipCount<<" 3D blips to the event.\n"
+  <<"---------------------------------------\n";
 
 }//END EVENT LOOP
 

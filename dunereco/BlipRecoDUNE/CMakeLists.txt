@@ -1,6 +1,7 @@
 
 add_subdirectory(Utils)
 add_subdirectory(Alg)
+add_subdirectory(Obj)
 add_subdirectory(job)
 
 set(      MODULE_LIBRARIES larcorealg::Geometry

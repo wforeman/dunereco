@@ -63,7 +63,13 @@ dune_blipalg_pdunesp.CaloAlg:       @local::pdune_sp_calorimetryalgdata
 dune_blipalg_pdunesp.Detector:      "pdunesp"
 dune_blipalg_pdunesp.HitProducer:    "hitpdune"
 dune_blipalg_pdunesp.VetoTPCs:        [ 0, 3, 4, 7, 8, 11 ] #// don't look at TPCs corresponding to non-active volumes
-dune_blipalg_pdunesp.TimeOffset:    [ 0.67,   0.55, 0.0 ]
+dune_blipalg_pdunesp.SaveTree:      false
+# 350 V/cm
+dune_blipalg_pdunesp_350Vcm:        @local::dune_blipalg_pdunesp
+dune_blipalg_pdunesp_350Vcm.TimeOffset:    [ -0.14, 0.32, 0.0 ]
+# 650 V/cm
+dune_blipalg_pdunesp_650Vcm:        @local::dune_blipalg_pdunesp
+dune_blipalg_pdunesp_650Vcm.TimeOffset:    [ 0.67,   0.55, 0.0 ]
 
 # Settings for ProtoDUNE-HD
 dune_blipalg_pdunehd:               @local::dune_blipalg_pdune
@@ -80,6 +86,24 @@ dune_blipalg_pdunevd.Detector:      "pdunehd"
 dune_blipalg_pdunevd.Detector:      "pdunevd"
 dune_blipalg_pdunevd.TimeOffset:    [ 0.25,   0.05, 0.0 ]
 
+#=======================================
+# Track masker
+dune_trackmasker:
+{
+  module_type:        "TrackMasker"
+  HitProducer:        "hitpdune"
+  TrkProducer:        "pandoraTrack"
+  MinTrkLength:       5   # cm
+  MinTrkLengthVeto:   15  # cm
+  VetoRadius:         20  # cm
+}
 
+#========================================
+# Blip producer
+dune_blipreco:
+{
+  module_type:  "BlipRecoProducer"
+  BlipAlg:      @local::dune_blipalg
+}
 
 END_PROLOG

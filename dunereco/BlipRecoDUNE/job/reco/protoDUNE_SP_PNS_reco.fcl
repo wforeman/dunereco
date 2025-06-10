@@ -1,0 +1,111 @@
+#include "blipreco_configs.fcl"
+#include "protoDUNE_SP_keepup_decoder_reco.fcl"
+
+# Subset of reco modules, dropping ones we don't 
+# intend to use to speed up processing
+protoDUNE_reco_data_lite: [
+  caldata,
+  wclsdatasp,
+  gaushit,
+  nhitsfilter,
+  reco3d,
+  hitpdune,
+  pandora,
+  pandoraWriter,
+  pandoraTrack,
+  pandoraShower,
+  pandoracalo,
+  pandoracalonosce,
+  #pandorapid
+  #pandoraShowercalo,
+  #pandoraShowercalonosce,
+  #pandoracali,
+  #pandoracalipid,
+  #emtrkmichelid,
+  #ophitInternal,
+  #ophitExternal,
+  #opflashInternal,
+  #opflashExternal,
+  #opslicerInternal,
+  #opslicerExternal,
+  #crttag,
+  #crtreco,
+  #anodepiercerst0,
+  pandora2Track
+  #pandora2calo, 
+  #pandora2calonosce, 
+  #pandora2pid,
+  #pandora2Shower, 
+  #pandora2Showercalo,
+  #pandora2Showercalonosce,
+  #pandora2cali,
+  #pandora2calipid
+]
+
+# ---------------------------------------------------------------------
+# BlipReco producer module
+physics.producers.blipreco:         @local::dune_blipreco
+physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp
+
+# ---------------------------------------------------------------------
+# Track removal: saves a collection of hits not associated with tracks
+# (needed for Walker's workflow using reco3d spacepoints)
+physics.producers.trkremoval:   { module_type: "TrackRemoval" }
+physics.producers.trkremoval.HitProducer:     "hitpdune"
+physics.producers.trkremoval.TrkProducer:     "pandora2Track"
+physics.producers.trkremoval.WireProducer:    "wclsdatasp:gauss"
+physics.producers.trkremoval.MinTrkLength:      5      #8
+physics.producers.trkremoval.MinTrkLengthVeto:  8      #10
+physics.producers.trkremoval.VetoRadius:        20     #12
+physics.producers.reco3dTrkRm: @local::protodunespmc_spacepointsolver
+physics.producers.reco3dTrkRm.HitLabel: "trkremoval"
+physics.producers.hitpduneTrkRm: @local::pdune_disambigfromsp 
+physics.producers.hitpduneTrkRm.HitModuleLabel: "trkremoval"
+
+# I'm not sure what this service does (it doesn't seem to actually affect
+# hit-finding thresholds) but we will modify it just in case from its default
+# of "3.0" down to 0.6 ADC to match what gaushit is set to use
+tools.adcThresholdSignalFinder.Threshold: 0.6
+
+# Define the sequence of modules to run 
+physics.decode: [ @sequence::protoDUNE_notpcdecoding,
+                  @sequence::protoDUNE_reco_data_lite,
+                  blipreco,
+                  trkremoval, 
+                  reco3dTrkRm,
+                  hitpduneTrkRm
+]
+
+# ProtoDUNE hit number filter: excludes events with an 
+# absurd number of hits that will clog up the reconstruction.
+# --> further reduce this to streamline the reco and drop
+#     busy events that will be hard to reconstruct
+physics.filters.nhitsfilter.HitLimit: 30000 # default 40000
+
+outputs.out1.SelectEvents: [ decode ]
+outputs.out1.fileName: "%ifb_%tc_pns_reco.root"
+outputs.out1.outputCommands: [
+    "keep *"
+    ,"drop artdaq::Fragments_*_*TPC_*"
+    ,"drop artdaq::Fragments_*_*FELIX_*"
+    ,"drop raw::RawDigit*_*_*_*"
+    ,"drop recob::Wires_caldata_dataprep_*"
+    ,"drop *_wclsdatasp_wiener_*"
+    ,"drop *_reco3d_noreg_*"
+    ,"drop *_reco3d_pre_*"
+    # new additions:
+    ,"drop raw::OpDetWaveforms_*_*_*"
+    #,"drop *_gaushit_*_*"
+    #,"drop *_reco3d_*_*"
+    ,"drop recob::Wires_*_*_*"
+    ,"drop *_emtrkmichelid_*_*"
+    ,"drop *_pandora_*_*"
+    ,"drop *_pandoraShower_*_*"
+    #,"drop *_pandora2*_*_*"
+    ,"drop *_daq_*_*"
+    ,"drop *_crtrawdecoder_*_*"
+    ,"drop recob::Wirerecob::Hitvoidart::Assns_*_*_*"
+    ,"drop recob::Hitrecob::SpacePointvoidart::Assns_*_*_*"
+]
+
+

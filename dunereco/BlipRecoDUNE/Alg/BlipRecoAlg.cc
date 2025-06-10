@@ -937,8 +937,9 @@ namespace blip {
                 ->WireIDsIntersect(wireA,wireB,xyz)) continue;
               // Save intersect location, so we don't have to
               // make another call to the Geometry service later
-              hcA.IntersectLocations[hcB.ID] = xyz; //xloc;
-              hcB.IntersectLocations[hcA.ID] = xyz; //xloc;
+              TVector3 xloc(xyz.X(), xyz.Y(), xyz.Z());
+              hcA.IntersectLocations[hcB.ID] = xloc; //xloc;
+              hcB.IntersectLocations[hcA.ID] = xloc; //xloc;
 
               // ***********************************
               // Calculate the cluster overlap

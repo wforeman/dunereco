@@ -15,6 +15,9 @@ add_subdirectory(VLNets)
 add_subdirectory(PointResTree)
 add_subdirectory(BlipRecoDUNE)
 
+# Walker's module
+add_subdirectory(TrackRemoval)
+
 # these two were not built in dunetpc at the time of the split
 # add_subdirectory(SNSlicer)
 # add_subdirectory(SNUtils)

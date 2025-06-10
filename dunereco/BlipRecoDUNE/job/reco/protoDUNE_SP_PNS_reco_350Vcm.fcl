@@ -1,0 +1,5 @@
+#include "protoDUNE_SP_PNS_reco.fcl"
+#include "set_efield_350Vcm.fcl"
+services.DetectorPropertiesService.GetHVDriftfromSamweb: false
+physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp_350Vcm
+outputs.out1.fileName: "%ifb_%tc_reco.root"

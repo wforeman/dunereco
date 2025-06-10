@@ -1,3 +1,4 @@
+
 art_make_library(LIBRARY_NAME  dune_BlipUtils
                  SOURCE    BlipUtils.cc
                  LIBRARIES larcorealg::Geometry
@@ -36,4 +37,3 @@ art_make_library(LIBRARY_NAME  dune_BlipUtils
 
 install_headers()
 install_source()
-install_fhicl()

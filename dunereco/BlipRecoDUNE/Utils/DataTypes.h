@@ -9,6 +9,7 @@ typedef std::vector<bool>       vbool_t;
 typedef std::vector<float>      vfloat_t;
 typedef std::set<int>           si_t;
 typedef std::map<int,float>     mif_t;
+typedef std::map<int,TVector3>  mitv3_t;
 
 const int kNplanes    = 3; 
 const int kNTPCs      = 24;
@@ -131,8 +132,9 @@ namespace blipobj {
     si_t    Wires;
     si_t    Chans;
     si_t    G4IDs;
-   
-    std::map<int,geo::Point_t> IntersectLocations;
+  
+    mitv3_t IntersectLocations;
+    //std::map<int,geo::Point_t> IntersectLocations;
     //std::map<int,TVector3> IntersectLocations;
   };
 
