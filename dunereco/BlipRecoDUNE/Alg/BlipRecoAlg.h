@@ -217,6 +217,7 @@ namespace blip {
     TH1D*   h_hit_times;
     TH1D*   h_chan_nhits;
     //TH1D*   h_chan_nclusts;
+    TH1D*   h_hit_trkfrac;
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
     

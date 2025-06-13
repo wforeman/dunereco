@@ -16,11 +16,11 @@ protoDUNE_reco_data_lite: [
   pandoraShower,
   pandoracalo,
   pandoracalonosce,
-  #pandorapid
-  #pandoraShowercalo,
-  #pandoraShowercalonosce,
-  #pandoracali,
-  #pandoracalipid,
+  pandorapid,
+  pandoraShowercalo,
+  pandoraShowercalonosce,
+  pandoracali,
+  pandoracalipid,
   #emtrkmichelid,
   #ophitInternal,
   #ophitExternal,
@@ -28,8 +28,8 @@ protoDUNE_reco_data_lite: [
   #opflashExternal,
   #opslicerInternal,
   #opslicerExternal,
-  #crttag,
-  #crtreco,
+  crttag,
+  crtreco,
   #anodepiercerst0,
   pandora2Track
   #pandora2calo, 
@@ -52,7 +52,7 @@ physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp
 # (needed for Walker's workflow using reco3d spacepoints)
 physics.producers.trkremoval:   { module_type: "TrackRemoval" }
 physics.producers.trkremoval.HitProducer:     "hitpdune"
-physics.producers.trkremoval.TrkProducer:     "pandora2Track"
+physics.producers.trkremoval.TrkProducer:     "pandoraTrack" # originally pandora2Track
 physics.producers.trkremoval.WireProducer:    "wclsdatasp:gauss"
 physics.producers.trkremoval.MinTrkLength:      5      #8
 physics.producers.trkremoval.MinTrkLengthVeto:  8      #10
@@ -94,18 +94,20 @@ outputs.out1.outputCommands: [
     ,"drop *_reco3d_noreg_*"
     ,"drop *_reco3d_pre_*"
     # new additions:
-    ,"drop raw::OpDetWaveforms_*_*_*"
-    #,"drop *_gaushit_*_*"
-    #,"drop *_reco3d_*_*"
     ,"drop recob::Wires_*_*_*"
-    ,"drop *_emtrkmichelid_*_*"
-    ,"drop *_pandora_*_*"
-    ,"drop *_pandoraShower_*_*"
-    #,"drop *_pandora2*_*_*"
+    ,"drop raw::OpDetWaveforms_*_*_*"
     ,"drop *_daq_*_*"
     ,"drop *_crtrawdecoder_*_*"
     ,"drop recob::Wirerecob::Hitvoidart::Assns_*_*_*"
     ,"drop recob::Hitrecob::SpacePointvoidart::Assns_*_*_*"
+    ,"drop *_reco3d_*_*"
+    ,"drop *_reco3dTrkRm_noreg_*"
+    ,"drop *_reco3dTrkRm_pre_*"
+    ,"drop *_gaushit_*_*"
+    ,"drop *_emtrkmichelid_*_*"
+    ,"drop *_pandora_*_*"
+    #,"drop *_pandoraShower_*_*"
+    ,"drop *_pandora2*_*_*"
 ]
 
 

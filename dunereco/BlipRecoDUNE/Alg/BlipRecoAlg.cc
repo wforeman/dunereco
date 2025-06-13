@@ -173,6 +173,8 @@ namespace blip {
     //h_hit_times       = hdir.make<TH1D>("hit_peaktime","Hit peaktimes",500,-5000,5000);
     //h_chan_nhits      = hdir.make<TH1D>("chan_nhits","Untracked hits;TPC readout channel;Total hits",kNumChannels,0,kNumChannels);
     //h_chan_nclusts    = hdir.make<TH1D>("chan_nclusts","Untracked isolated hits;TPC readout channel;Total clusts",kNumChannels,0,kNumChannels);
+    
+    h_hit_trkfrac     = hdir.make<TH1D>("hit_trkfrac","Fraction of total hits tracked > 5cm",201,0,1.005);
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
     h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
     
@@ -556,6 +558,7 @@ namespace blip {
     hitinfo.resize(hitlist.size());
     std::map<int, std::map<int, std::map<int,std::vector<int> >>> cryo_tpc_plane_hitsMap;
     int nhits_untracked = 0;
+    int nhits_tracked   = 0;
 
     for(size_t i=0; i<hitlist.size(); i++){
       auto const& thisHit = hitlist[i];
@@ -628,9 +631,11 @@ namespace blip {
       // add to the map
       cryo_tpc_plane_hitsMap[cstat][tpc][plane].push_back(i);
       if( hitinfo[i].trkid < 0 ) nhits_untracked++;
+      else                       nhits_tracked++;
 
     }//endloop over hits
-    
+
+    if( hitlist.size() ) h_hit_trkfrac->Fill( float(nhits_tracked)/float(hitlist.size()) );
 
     //=================================================================
     // Blip Reconstruction
@@ -669,8 +674,7 @@ namespace blip {
           hitIsGood[i] = false;
       }
     }
-    
-
+   
     // Filter based on hit properties. For hits that are a part of
     // multi-gaussian fits (multiplicity > 1), need to re-think this.
     if( fDoHitFiltering ) {
@@ -1129,6 +1133,7 @@ namespace blip {
       }//endif calo plane has clusters
     }//endloop over TPCs
     }//endloop over Cryostats
+    if( fDebug ) std::cout<<"Blip-finding completed: made "<<blips.size()<<"\n";
 
     //std::cout<<"Found "<<hitclust.size()<<" clusters and "<<blips.size()<<" blips\n";
     

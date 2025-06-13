@@ -1,4 +1,4 @@
-#include "protoDUNE_SP_PNS_reco.fcl"
+#include "protoDUNE_SP_PNS_reco_data.fcl"
 #include "set_efield_350Vcm.fcl"
 services.DetectorPropertiesService.GetHVDriftfromSamweb: false
 physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp_350Vcm

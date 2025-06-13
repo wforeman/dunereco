@@ -1328,7 +1328,7 @@ void BlipAna::analyze(const art::Event& evt)
   //====================================
   // Save hit information
   //====================================
-  //std::cout<<"Looping over the hits...\n";
+  std::cout<<"Looping over the hits...\n";
   int   num_hits[kNplanes]            ={0};
   int   num_hits_untracked[kNplanes]  ={0};
   int   num_hits_true[kNplanes]       ={0};
