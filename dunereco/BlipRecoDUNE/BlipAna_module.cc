@@ -192,6 +192,7 @@ class BlipAnaTreeDataStruct
   int   trk_id[kMaxTrks];         // trackID
   int   trk_npts[kMaxTrks];       // number 3D trajectory points
   float trk_length[kMaxTrks];     // track length [cm]
+  float trk_extent[kMaxTrks];     // extent of track (start-end) [cm]
   float trk_startx[kMaxTrks];     // starting X coordinate
   float trk_starty[kMaxTrks];     // starting Y coordinate
   float trk_startz[kMaxTrks];     // starting Z coordinate
@@ -355,6 +356,7 @@ class BlipAnaTreeDataStruct
       FillWith(trk_id,      -999); 
       FillWith(trk_npts,    -999); 
       FillWith(trk_length,  -999);    
+      FillWith(trk_extent,  -999);    
       FillWith(trk_startx,  -999);    
       FillWith(trk_starty,  -999);    
       FillWith(trk_startz,  -999);    
@@ -472,6 +474,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("ntrks",&ntrks,"ntrks/I");
       evtTree->Branch("trk_id",trk_id,"trk_id[ntrks]/I");       
       evtTree->Branch("trk_length",trk_length,"trk_length[ntrks]/F");
+      evtTree->Branch("trk_extent",trk_extent,"trk_extent[ntrks]/F");
       evtTree->Branch("trk_startx",trk_startx,"trk_startx[ntrks]/F");
       evtTree->Branch("trk_starty",trk_starty,"trk_starty[ntrks]/F");
       evtTree->Branch("trk_startz",trk_startz,"trk_startz[ntrks]/F");
@@ -511,7 +514,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_z",blip_z,"blip_z[nblips]/F");
     evtTree->Branch("blip_dx",blip_dx,"blip_dx[nblips]/F");
     evtTree->Branch("blip_dw",blip_dw,"blip_dw[nblips]/F");
-    evtTree->Branch("blip_size",blip_size,"blip_size[nblips]/F");
+    //evtTree->Branch("blip_size",blip_size,"blip_size[nblips]/F");
     evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/I");
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
     evtTree->Branch("blip_energyCorr",blip_energyCorr,"blip_energyCorr[nblips]/F");
@@ -523,10 +526,12 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_touchtrk",blip_touchtrk,"blip_touchtrk[nblips]/O");
     if( saveTrkInfo ) evtTree->Branch("blip_touchtrkid",blip_touchtrkid,"blip_touchtrkid[nblips]/I");
     if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
+    if( saveClustInfo ) {
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
+    }
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],Form("blip_pl%i_nwires[nblips]/I",i));
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_maxamp",i),blip_maxamp[i],Form("blip_pl%i_maxamp[nblips]/F",i));
-    for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_minamp",i),blip_minamp[i],Form("blip_pl%i_minamp[nblips]/F",i));
+    //for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_minamp",i),blip_minamp[i],Form("blip_pl%i_minamp[nblips]/F",i));
     
     
     if( saveTruthInfo ) {
@@ -540,12 +545,12 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("part_endKE",part_endKE,"part_endKE[nparticles]/F");
       //evtTree->Branch("part_mass",part_mass,"part_mass[nparticles]/F");
       //evtTree->Branch("part_P",part_P,"part_P[nparticles]/F");
-      //evtTree->Branch("part_Px",part_Px,"part_Px[nparticles]/F");
-      //evtTree->Branch("part_Py",part_Py,"part_Py[nparticles]/F");
-      //evtTree->Branch("part_Pz",part_Pz,"part_Pz[nparticles]/F");
-      //evtTree->Branch("part_startPointx",part_startPointx,"part_startPointx[nparticles]/F");
-      //evtTree->Branch("part_startPointy",part_startPointy,"part_startPointy[nparticles]/F");
-      //evtTree->Branch("part_startPointz",part_startPointz,"part_startPointz[nparticles]/F");
+      evtTree->Branch("part_Px",part_Px,"part_Px[nparticles]/F");
+      evtTree->Branch("part_Py",part_Py,"part_Py[nparticles]/F");
+      evtTree->Branch("part_Pz",part_Pz,"part_Pz[nparticles]/F");
+      evtTree->Branch("part_startPointx",part_startPointx,"part_startPointx[nparticles]/F");
+      evtTree->Branch("part_startPointy",part_startPointy,"part_startPointy[nparticles]/F");
+      evtTree->Branch("part_startPointz",part_startPointz,"part_startPointz[nparticles]/F");
       //evtTree->Branch("part_endPointx",part_endPointx,"part_endPointx[nparticles]/F");
       //evtTree->Branch("part_endPointy",part_endPointy,"part_endPointy[nparticles]/F");
       //evtTree->Branch("part_endPointz",part_endPointz,"part_endPointz[nparticles]/F");
@@ -1194,17 +1199,6 @@ void BlipAna::analyze(const art::Event& evt)
     const auto& startPt = trk->Vertex();
     const auto& endPt   = trk->End();
     map_trkid_index[trk->ID()] = i;
-    fData->trk_id[i]    = trk->ID();
-    fData->trk_npts[i]  = trk->NumberTrajectoryPoints();
-    fData->trk_length[i]= trk->Length();
-    fData->trk_startx[i]= startPt.X();
-    fData->trk_starty[i]= startPt.Y();
-    fData->trk_startz[i]= startPt.Z();
-    fData->trk_endx[i]  = endPt.X();
-    fData->trk_endy[i]  = endPt.Y();
-    fData->trk_endz[i]  = endPt.Z();
-    fData->trk_startd[i]= BlipUtils::DistToBoundary(startPt);
-    fData->trk_endd[i]  = BlipUtils::DistToBoundary(endPt);
     h_trk_length  ->Fill(trk->Length());
 
     float xspan = fabs( startPt.X()-endPt.X() );
@@ -1213,7 +1207,9 @@ void BlipAna::analyze(const art::Event& evt)
     h_trk_xspan   ->Fill( xspan );
     h_trk_yspan   ->Fill( yspan );
     h_trk_zspan   ->Fill( zspan );
+   
     
+
     // set the required 'dX' that would indicate a
     // track crossed the full drift distance
     float dx_min = 350;
@@ -1223,6 +1219,18 @@ void BlipAna::analyze(const art::Event& evt)
     map_trkid_length[trk->ID()] = trk->Length();
     map_trkid_isMIP[trk->ID()]  = (trk->Length()>100) ? true : false;
 
+    fData->trk_id[i]    = trk->ID();
+    fData->trk_npts[i]  = trk->NumberTrajectoryPoints();
+    fData->trk_length[i]= trk->Length();
+    fData->trk_extent[i]= sqrt( pow(xspan,2) + pow(yspan,2) + pow(zspan,2) );
+    fData->trk_startx[i]= startPt.X();
+    fData->trk_starty[i]= startPt.Y();
+    fData->trk_startz[i]= startPt.Z();
+    fData->trk_endx[i]  = endPt.X();
+    fData->trk_endy[i]  = endPt.Y();
+    fData->trk_endz[i]  = endPt.Z();
+    fData->trk_startd[i]= BlipUtils::DistToBoundary(startPt);
+    fData->trk_endd[i]  = BlipUtils::DistToBoundary(endPt);
     // count the number of non-blippy tracks to use
     // as a metric for cosmic activity in event
     if( trk->Length() > 5 ) fData->longtrks++;

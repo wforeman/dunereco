@@ -26,15 +26,15 @@
 template class std::vector<blipobj::Blip>;
 template class art::Wrapper<std::vector<blipobj::Blip> >;
 
-//template class art::Assns<recob::Hit,blipobj::Blip,void>;
-//template class art::Wrapper<art::Assns<recob::Hit,blipobj::Blip,void> >;
-//
-//template class art::Assns<blipobj::Blip,recob::Hit,void>;
-//template class art::Wrapper<art::Assns<blipobj::Blip,recob::Hit,void> >;
-//
+template class art::Assns<recob::Hit,blipobj::Blip,void>;
+template class art::Wrapper<art::Assns<recob::Hit,blipobj::Blip,void> >;
+
+template class art::Assns<blipobj::Blip,recob::Hit,void>;
+template class art::Wrapper<art::Assns<blipobj::Blip,recob::Hit,void> >;
+
 template class std::vector<blipobj::TrueBlip>;
 template class art::Wrapper<std::vector<blipobj::TrueBlip> >;
-//
+
 template class std::vector<blipobj::HitClust>;
 template class art::Wrapper<std::vector<blipobj::HitClust> >;
 

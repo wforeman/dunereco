@@ -38,7 +38,7 @@ dune_blipalg:
   #BadChanFile:          "blipreco_badchannels.txt"
   MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
   
-  #DebugMode: true
+  DebugMode: true
 
 }
 

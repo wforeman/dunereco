@@ -3,13 +3,12 @@
 <class name="art::Wrapper<std::vector<blipobj::Blip> >"/>
 <class name="std::vector<blipobj::Blip>"/>
 
-<!--
 <class name="art::Wrapper<art::Assns<blipobj::Blip,recob::Hit,void> >"/>
 <class name="art::Assns<blipobj::Blip,recob::Hit,void>"/>
 
 <class name="art::Wrapper<art::Assns<recob::Hit,blipobj::Blip,void> >"/>
 <class name="art::Assns<recob::Hit,blipobj::Blip,void>"/>
--->
+
 <class name="blipobj::TrueBlip"/>
 <class name="art::Wrapper<std::vector<blipobj::TrueBlip> >"/>
 <class name="std::vector<blipobj::TrueBlip>"/>

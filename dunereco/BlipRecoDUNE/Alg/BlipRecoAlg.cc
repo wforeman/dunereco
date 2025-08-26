@@ -331,6 +331,7 @@ namespace blip {
     //auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
 
     // -- lifetime
+    std::cout<<"Blip reco retrieving lifetime\n";
     kLifetime = detProp.ElectronLifetime(); // [us]
     if( fDetector == "pdunesp" && evt.isRealData() ) {
       // Electron lifetime from database calibration service provider
@@ -343,6 +344,7 @@ namespace blip {
       kLifetime = lifetimecalib->GetLifetime()*1e3; // [ms]*1000.0 -> [us]
       */
     }
+    std::cout<<kLifetime<<"\n";
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
@@ -437,6 +439,7 @@ namespace blip {
       pi_serv->Rebuild(evt);
       pi_serv->provider()->PrepParticleList(evt);
     }
+
     
 
     //===============================================================
@@ -473,6 +476,7 @@ namespace blip {
     std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
     for(size_t i = 0; i<plist.size(); i++) 
       map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
+    if( fDebug ) std::cout<<"Made G4-PDG map\n";
    
 
     //======================================================
@@ -526,19 +530,25 @@ namespace blip {
         if( mm.second > 0 ) h_recoWireEffQ_denom->Fill(mm.second);
       }
     }
+    if( fDebug ) std::cout<<"Made simchannel based maps\n";
     
 
     //==================================================
     // Use G4 information to determine the "true" blips in this event.
     //==================================================
     if( plist.size() ) {
+      //std::cout<<"Filling particle info\n";
       pinfo.resize(plist.size());
       for(size_t i = 0; i<plist.size(); i++){
+        //std::cout<<"Particle "<<i<<"\n";
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
         if( map_g4trkid_charge[pinfo[i].trackId] ) pinfo[i].numElectrons = (int)map_g4trkid_charge[pinfo[i].trackId];
         pinfo[i].index = i;
       }
+      //std::cout<<"MakeTrueBlips...\n";
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
+      //std::cout<<"Made "<<trueblips.size()<<"\n";
+      //std::cout<<"MergeTrueBlips...\n";
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
     }
     
@@ -590,8 +600,10 @@ namespace blip {
         std::vector<sim::TrackIDE> trackIDEs = art::ServiceHandle<cheat::BackTrackerService>()->HitToTrackIDEs(clockData,thisHit);
         float maxe = 0;
         float ne = 0;
+        float energy = 0;
         for(size_t i = 0; i < trackIDEs.size(); ++i){
           ne += (float)trackIDEs[i].numElectrons;
+          energy += trackIDEs[i].energy;
           if( trackIDEs[i].energy > maxe ) {
             maxe = trackIDEs[i].energy;
             truthidfrac = trackIDEs[i].energyFrac;
@@ -602,7 +614,9 @@ namespace blip {
         // Save the results
         hitinfo[i].g4trkid  = truthid;
         hitinfo[i].g4pdg    = map_g4trkid_pdg[truthid];
-        hitinfo[i].g4frac   = truthidfrac; 
+        hitinfo[i].g4frac   = truthidfrac;
+        hitinfo[i].g4energy = energy;
+        hitinfo[i].g4charge = ne;
         
         if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) 
           h_recoWireEff_num->Fill(map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan]);

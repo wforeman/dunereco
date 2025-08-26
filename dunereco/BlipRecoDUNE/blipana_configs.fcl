@@ -8,8 +8,8 @@ dune_blipana:
   SaveTruthInfo:      true
   SaveTrkInfo:        true
   SaveHitInfo:        false
-  SaveClustInfo:      true
-  DebugMode:          false
+  SaveClustInfo:      false
+  DebugMode:          true
 }
 
 # Configurations for DUNE-10kt 1x2x6
