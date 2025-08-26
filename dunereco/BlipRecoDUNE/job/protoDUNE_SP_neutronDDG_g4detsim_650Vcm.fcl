@@ -1,0 +1,4 @@
+#include "protoDUNE_SP_neutronDDG_g4detsim.fcl"
+#include "set_efield_650Vcm.fcl"
+#services.DetectorPropertiesService.GetHVDriftfromSamweb: false
+outputs.out1.fileName: "%ifb_g4_detsim_650Vcm.root"

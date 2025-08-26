@@ -44,6 +44,7 @@ physics:
   }
 
   simulate: [ ngen, ar39, cosmicgen ]
+  simulate: [ ngen ]
   stream1:  [ out1 ]
   trigger_paths: [simulate] 
   end_paths:     [stream1]  
@@ -54,7 +55,7 @@ outputs:
  out1:
  {
    module_type: RootOutput
-   fileName:    "ProtoDUNE_SP_mc_gen_ddg_ar39_cos.root" #default file name, can override from command line with -o or --output
+   fileName:    "ProtoDUNE_SP_mc_gen_ddg.root" #default file name, can override from command line with -o or --output
    dataTier:    "generated"
    compressionLevel: 1
  }

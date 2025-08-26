@@ -1,6 +1,5 @@
-#include "protoDUNE_SP_PNS_reco_data.fcl"
+#include "protoDUNE_SP_PNS_reco_mc.fcl"
 #include "set_efield_650Vcm.fcl"
 services.DetectorPropertiesService.GetHVDriftfromSamweb: false
 physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp_650Vcm
-outputs.out1.fileName: "%ifb_%tc_650Vcm_pns_reco.root"
-
+outputs.out1.fileName: "%ifb_%tc_pns_mc_reco_650Vcm.root"

@@ -3,6 +3,7 @@
 #include "services_dune.fcl"
 #include "calorimetry_dune10kt.fcl"
 #include "blipreco_configs.fcl"
+#include "blipana_configs.fcl"
 
 process_name: BlipReco
 

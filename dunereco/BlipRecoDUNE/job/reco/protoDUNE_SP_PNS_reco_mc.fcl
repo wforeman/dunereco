@@ -1,9 +1,16 @@
 #include "blipreco_configs.fcl"
-#include "protoDUNE_SP_keepup_decoder_reco.fcl"
+#include "protoDUNE_refactored_reco.fcl"
+
+services.Geometry:  @local::protodunev7_ddg_geo
+services.DetectorPropertiesService.Electronlifetime:  100.0e3 #set to large value for test
+services.LifetimeCalibService.IsMC: true
 
 # Subset of reco modules, dropping ones we don't 
 # intend to use to speed up processing
-protoDUNE_reco_data_lite: [
+protoDUNE_reco_mc_lite: [
+  #ophit,
+  #opflash,
+  #opslicer,
   caldata,
   wclsdatasp,
   gaushit,
@@ -22,20 +29,14 @@ protoDUNE_reco_data_lite: [
   #pandoracali,
   #pandoracalipid,
   #emtrkmichelid,
-  #ophitInternal,
-  #ophitExternal,
-  #opflashInternal,
-  #opflashExternal,
-  #opslicerInternal,
-  #opslicerExternal,
   crttag,
   crtreco,
   #anodepiercerst0,
   pandora2Track
-  #pandora2calo, 
-  #pandora2calonosce, 
+  #pandora2calo,
+  #pandora2calonosce,
   #pandora2pid,
-  #pandora2Shower, 
+  #pandora2Shower,
   #pandora2Showercalo,
   #pandora2Showercalonosce,
   #pandora2cali,
@@ -62,19 +63,13 @@ physics.producers.reco3dTrkRm.HitLabel: "trkremoval"
 physics.producers.hitpduneTrkRm: @local::pdune_disambigfromsp 
 physics.producers.hitpduneTrkRm.HitModuleLabel: "trkremoval"
 
-# Electron lifetime retrieval error for  CalibrationdEdXPDSP/pandoracali;
-# just turning this OFF for now
-#physics.producers.pandoracali.ApplyLifetimeCorrection:        false
-#physics.producers.pandoracali.ApplyLifetimeCorrectionShower:  false
-
 # I'm not sure what this service does (it doesn't seem to actually affect
 # hit-finding thresholds) but we will modify it just in case from its default
 # of "3.0" down to 0.6 ADC to match what gaushit is set to use
 tools.adcThresholdSignalFinder.Threshold: 0.6
 
 # Define the sequence of modules to run 
-physics.decode: [ @sequence::protoDUNE_notpcdecoding,
-                  @sequence::protoDUNE_reco_data_lite,
+physics.reco: [ @sequence::protoDUNE_reco_mc_lite,
                   blipreco,
                   trkremoval, 
                   reco3dTrkRm,
@@ -87,8 +82,8 @@ physics.decode: [ @sequence::protoDUNE_notpcdecoding,
 #     busy events that will be hard to reconstruct
 physics.filters.nhitsfilter.HitLimit: 30000 # default 40000
 
-outputs.out1.SelectEvents: [ decode ]
-outputs.out1.fileName: "%ifb_%tc_pns_reco.root"
+outputs.out1.SelectEvents: [ reco ]
+outputs.out1.fileName: "%ifb_%tc_pns_mc_reco.root"
 outputs.out1.outputCommands: [
     "keep *"
     ,"drop artdaq::Fragments_*_*TPC_*"
@@ -114,5 +109,3 @@ outputs.out1.outputCommands: [
     #,"drop *_pandoraShower_*_*"
     ,"drop *_pandora2*_*_*"
 ]
-
-

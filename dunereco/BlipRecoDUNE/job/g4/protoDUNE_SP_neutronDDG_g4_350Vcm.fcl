@@ -1,2 +1,3 @@
 #include "protoDUNE_SP_neutronDDG_g4.fcl"
 #include "set_efield_350Vcm.fcl"
+outputs.out1.fileName: "%ifb_g4_350Vcm.root"

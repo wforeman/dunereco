@@ -65,3 +65,5 @@ outputs:
 }
 
 services.TFileService.fileName: "hist_detsim.root"
+
+services.DetectorPropertiesService.Electronlifetime:  100.0e3 #set to large value for test
