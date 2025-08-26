@@ -1,0 +1,2 @@
+#include "protoDUNE_SP_neutronDDG_gen.fcl"
+physics.simulate: [ ngen ]
