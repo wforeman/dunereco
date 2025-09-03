@@ -63,7 +63,7 @@ outputs:
 #Set generator parameters
 #physics.producers.ngen.InputFileName: "pdunesp_pns_1500n.dat"
 
-# For ProtoDUNE-SP DDG run at 350V/cm, 4us pulse used. Estimate 1E6 neutrons/sec,
+# For ProtoDUNE-SP DDG run at 350V/cm, 180us pulse used. Estimate 1E6 neutrons/sec,
 # resulting in ~180 neutrons per event. Only simulate 90 downward-going ones:
 physics.producers.ngen.PadOutVectors:  true
 physics.producers.ngen.PDG:   [ 
@@ -82,13 +82,13 @@ physics.producers.ngen.SigmaP:  [ 0.0       ]
 physics.producers.ngen.X0:      [ 355.0 ]
 physics.producers.ngen.Y0:      [ 630.0 ]
 physics.producers.ngen.Z0:      [ 60.0  ]
-physics.producers.ngen.T0:      [ 0.    ]
-physics.producers.ngen.SigmaX: [ 0.0 ] # x = (0, 256)
-physics.producers.ngen.SigmaY: [ 0.0 ] # y = (-116.5, 116.5)
-physics.producers.ngen.SigmaZ: [ 0.0 ] # z = (0, 1037)
-physics.producers.ngen.SigmaT: [ 0 ] # In time
+physics.producers.ngen.T0:      [ 0.0 ] # what should this be for ProtoDUNE?
+physics.producers.ngen.SigmaX:  [ 0.0 ]
+physics.producers.ngen.SigmaY:  [ 0.0 ]
+physics.producers.ngen.SigmaZ:  [ 0.0 ]
+physics.producers.ngen.SigmaT:  [ 0 ]
 physics.producers.ngen.Theta0XZ: [ 0.0   ]
-physics.producers.ngen.Theta0YZ: [ -180. ]
+physics.producers.ngen.Theta0YZ: [ -90. ]
 physics.producers.ngen.SigmaThetaXZ: [ 180. ] # Quasi-isotropic
 physics.producers.ngen.SigmaThetaYZ: [ 90. ]
 physics.producers.ngen.PDist: 0

@@ -71,6 +71,10 @@ dune_blipalg_pdunesp_350Vcm.TimeOffset:    [ -0.14, 0.32, 0.0 ]
 dune_blipalg_pdunesp_650Vcm:        @local::dune_blipalg_pdunesp
 dune_blipalg_pdunesp_650Vcm.TimeOffset:    [ 0.67,   0.55, 0.0 ]
 
+# Settings for ProtoDUNE-SP (MC)
+dune_blipalg_pdunesp_mc:               @local::dune_blipalg_pdunesp
+dune_blipalg_pdunesp_mc.CaloAlg:       @local::pdune_sp_calorimetryalgmc
+
 # Settings for ProtoDUNE-HD
 dune_blipalg_pdunehd:               @local::dune_blipalg_pdune
 dune_blipalg_pdunehd.CaloAlg:       @local::pdhd_calorimetryalgdata

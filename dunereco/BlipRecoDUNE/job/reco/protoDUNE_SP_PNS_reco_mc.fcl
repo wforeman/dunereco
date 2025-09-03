@@ -46,7 +46,7 @@ protoDUNE_reco_mc_lite: [
 # ---------------------------------------------------------------------
 # BlipReco producer module
 physics.producers.blipreco:         @local::dune_blipreco
-physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp
+physics.producers.blipreco.BlipAlg: @local::dune_blipalg_pdunesp_mc
 
 # ---------------------------------------------------------------------
 # Track removal: saves a collection of hits not associated with tracks
